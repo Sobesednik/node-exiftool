@@ -4,6 +4,7 @@
   "description": "A Node.js interface to exiftool command-line application.",
   "main": "index.js",
   "scripts": {
+    "coverage": "istanbul cover _mocha test",
     "test": "mocha test",
     "preinstall": "curl -L https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-10.16.tar.gz | tar xz -C vendor"
   },
@@ -26,6 +27,7 @@
   "devDependencies": {
     "chai": "3.5.0",
     "chai-as-promised": "5.3.0",
+    "istanbul": "0.4.3",
     "mocha": "2.4.5"
   }
 }
