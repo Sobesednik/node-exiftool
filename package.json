@@ -1,0 +1,26 @@
+{
+  "name": "node-exiftool",
+  "version": "1.0.0",
+  "description": "A Node.js interface to exiftool command-line application.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test",
+    "preinstall": "curl -L https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-10.16.tar.gz | tar xz -C vendor"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sobesednik/node-exiftool.git"
+  },
+  "keywords": [
+    "metadata",
+    "exiftool",
+    "IPTC",
+    "XMP"
+  ],
+  "author": "Anton @ Sobesednik.Media",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Sobesednik/node-exiftool/issues"
+  },
+  "homepage": "https://github.com/Sobesednik/node-exiftool#readme"
+}
