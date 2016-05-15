@@ -185,7 +185,6 @@ describe('exiftool unit test', function() {
                             FileName: 'IMG_9858.JPG',
                             Directory: 'test/fixtures/CANON',
                             FileSize: '52 kB',
-                            FileModifyDate: '2016:05:14 23:51:00+01:00',
                             FileType: 'JPEG',
                             FileTypeExtension: 'jpg',
                             MIMEType: 'image/jpeg',
