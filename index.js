@@ -115,7 +115,10 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise to stop the process.
      */
     close() {
-        return new Promise((resolve, reject) => {
+        if (!this._open) {
+            return Promise.reject(new Error('Exiftool process is not open'));
+        }
+        return new Promise((resolve) => {
             this._process.on('close', (code, signal) => {
                 this._open = false;
                 resolve(code);
@@ -129,6 +132,9 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise to spawn exiftool in stay_open mode.
      */
     open() {
+        if (this._open) {
+            return Promise.reject(new Error('Exiftool process is already open'));
+        }
         return new Promise((resolve, reject) => {
             const echo = String(Date.now());
             const process = cp.spawn(this._bin, ['-echo2', echo, '-stay_open', 'True', '-@', '-']);

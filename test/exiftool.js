@@ -69,6 +69,11 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
+            it('returns rejected promise when process is open already', function() {
+                return ep.open().then(() => {
+                    return ep.open().should.be.rejectedWith('Exiftool process is already open');
+                });
+            });
         });
 
         describe('close', function() {
@@ -120,6 +125,9 @@ describe('exiftool unit test', function() {
                         ep.isOpen.should.be.false;
                     });
                 })
+            });
+            it('returns rejected promise when process not open', function() {
+                return ep.close().should.be.rejectedWith('Exiftool process is not open');
             });
         });
 
