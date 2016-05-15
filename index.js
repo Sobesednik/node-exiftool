@@ -81,18 +81,15 @@ class CommandDeferred {
             return false;
         }
     }
-
     reject(err) {
         this._reject(err);
     }
-
     get hasData() {
         return this._data !== undefined;
     }
     get hasError() {
         return this._error !== undefined;
     }
-
     static _makeRegExp(commandNumber) {
         return new RegExp(`{begin${commandNumber}}\n` +
                           '([\\s\\S]*)' +
@@ -202,6 +199,10 @@ class ExiftoolProcess extends EventEmitter {
         });
     }
 
+    /**
+     * Checks if process is opens.
+     * @returns {boolean} true if open and false otherwise.
+     */
     get isOpen() {
         return this._open;
     }
@@ -255,6 +256,14 @@ class ExiftoolProcess extends EventEmitter {
         return deferred.promise;
     }
 
+    /**
+     * Read metadata of a file or directory.
+     * @param {string} file - path to the file or directory
+     * @param {Array} args - any additional arguments, e.g.,
+     * ['Orientation#'] to report Orientation only, or ['-FileSize'] to exclude FileSize
+     * @returns {Promise} a promise resolved with data (array or null) and error
+     * (string or null) properties from stdout and stderr of exiftool.
+     */
     readMetadata(file, args) {
         return this._executeCommand(file, args);
     }
