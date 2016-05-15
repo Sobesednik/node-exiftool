@@ -187,8 +187,8 @@ ep.readMetadata('url.html').then((res) => {
 }
 ```
 ### Custom Arguments
-You can pass arguments which you wish to use in the exiftool command call. They will
-automatically be prepended with the `-` sign so you don't have to do it manually.
+You can pass arguments which you wish to use in the *exiftool* command call. They will
+be automatically prepended with the `-` sign so you don't have to do it manually.
 ```javascript
 // include only some tags
 ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation']).then((res) => {
@@ -216,23 +216,23 @@ ep.readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all']).then((res) => {
 ```
 ```
 {
-  data:[
+  data: [
     {
-      SourceFile:'photo.jpg',
-      Orientation:'Rotate 90 CW',
-      XResolution:72,
-      YResolution:72,
-      ResolutionUnit:'inches',
-      YCbCrPositioning:'Centered',
-      XMPToolkit:'Image::ExifTool 10.11',
-      CreatorWorkURL:'https://sobesednik.media',
-      Scene:'011200',
-      Creator:'Anton',
-      ImageSize:'500x334',
-      Megapixels:0.167
+      SourceFile: 'photo.jpg',
+      Orientation: 'Rotate 90 CW',
+      XResolution: 72,
+      YResolution: 72,
+      ResolutionUnit: 'inches',
+      YCbCrPositioning: 'Centered',
+      XMPToolkit: 'Image::ExifTool 10.11',
+      CreatorWorkURL: 'https://sobesednik.media',
+      Scene: '011200',
+      Creator: 'Anton',
+      ImageSize: '500x334',
+      Megapixels: 0.167
     }
   ],
-  error:null
+  error: null
 }
 ```
 
