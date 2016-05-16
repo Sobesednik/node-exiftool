@@ -1,6 +1,6 @@
 {
   "name": "node-exiftool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Node.js interface to exiftool command-line application.",
   "main": "index.js",
   "scripts": {
