@@ -6,7 +6,7 @@
   "scripts": {
     "coverage": "istanbul cover _mocha test",
     "test": "mocha test",
-    "preinstall": "curl -L https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-10.16.tar.gz | tar xz -C vendor"
+    "download_exiftool": "curl -L https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-10.19.tar.gz | tar xz -C vendor"
   },
   "repository": {
     "type": "git",
