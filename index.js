@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
 
-const EXIFTOOL_PATH = path.resolve(path.join(__dirname, 'vendor', 'Image-ExifTool-10.19', 'exiftool'));
+const EXIFTOOL_PATH = path.resolve(path.join(__dirname, 'vendor', 'Image-ExifTool-10.25', 'exiftool'));
 
 const events = {
     OPEN: 'exiftool_opened',
