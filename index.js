@@ -3,6 +3,7 @@ const cp = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
+const EOL = require('os').EOL;
 
 const EXIFTOOL_PATH = path.resolve(path.join(__dirname, 'vendor', 'Image-ExifTool-10.25', 'exiftool'));
 
@@ -91,9 +92,9 @@ class CommandDeferred {
         return this._error !== undefined;
     }
     static _makeRegExp(commandNumber) {
-        return new RegExp(`{begin${commandNumber}}\n` +
+        return new RegExp(`{begin${commandNumber}}${EOL}` +
                           '([\\s\\S]*)' +
-                          `{ready${commandNumber}}\n`);
+                          `{ready${commandNumber}}${EOL}`);
     }
 }
 
@@ -222,20 +223,20 @@ class ExiftoolProcess extends EventEmitter {
      */
     static _execute(process, command, commandNumber, args) {
         args = args !== undefined ? args : [];
-        const argsString = args.length ? args.map(arg => `-${arg}`).join('\n') : '';
+        const argsString = args.length ? args.map(arg => `-${arg}`).join(EOL) : '';
 
         command = command !== undefined ? command : '';
 
         process.stdin.write(argsString);
-        process.stdin.write('\n');
-        process.stdin.write('-json\n');
-        process.stdin.write('-s\n');
+        process.stdin.write(EOL);
+        process.stdin.write(`-json${EOL}`);
+        process.stdin.write(`-s${EOL}`);
         process.stdin.write(command);
-        process.stdin.write('\n');
-        process.stdin.write(`-echo1\n{begin${commandNumber}}\n`);
-        process.stdin.write(`-echo2\n{begin${commandNumber}}\n`);
-        process.stdin.write(`-echo4\n{ready${commandNumber}}\n`);
-        process.stdin.write(`-execute${commandNumber}\n`);
+        process.stdin.write(EOL);
+        process.stdin.write(`-echo1${EOL}{begin${commandNumber}}${EOL}`);
+        process.stdin.write(`-echo2${EOL}{begin${commandNumber}}${EOL}`);
+        process.stdin.write(`-echo4${EOL}{ready${commandNumber}}${EOL}`);
+        process.stdin.write(`-execute${commandNumber}${EOL}`);
     }
 
     _executeCommand(command, args) {
