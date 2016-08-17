@@ -124,6 +124,8 @@ class ExiftoolProcess extends EventEmitter {
                 this._open = false;
                 resolve(code);
             });
+            this._process.stdin.write(`-stay_open${EOL}`);
+            this._process.stdin.write(`false${EOL}`);
             this._process.kill();
         });
     }
