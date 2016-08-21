@@ -8,6 +8,7 @@ chai.use(chaiAsPromised);
 const exiftool = require('../index')
 const path = require('path');
 const fs = require('fs');
+const EOL = require('os').EOL;
 
 describe('exiftool unit test', function() {
     const fixturesDir = 'fixtures';
@@ -149,7 +150,7 @@ describe('exiftool unit test', function() {
                             file.Scene.should.equal('011200');
                         });
                         expect(res.error).to.be.not.null;
-                        res.error.should.equal('1 directories scanned\n    5 image files read');
+                        res.error.should.equal(`1 directories scanned${EOL}    5 image files read`);
                     });
                 });
             });
@@ -158,7 +159,7 @@ describe('exiftool unit test', function() {
                     return ep.readMetadata(emptyFolder).then((res) => {
                         expect(res.data).to.be.null;
                         expect(res.error).to.be.not.null;
-                        res.error.should.equal('1 directories scanned\n    0 image files read');
+                        res.error.should.equal(`1 directories scanned${EOL}    0 image files read`);
                     });
                 });
             });
@@ -251,9 +252,9 @@ describe('exiftool unit test', function() {
                 return ep.open().then(() => {
                     const stdData = 'hello';
                     const stdErr = 'world';
-                    ep._process.stdin.write(`-echo\n${stdData}\n`);
-                    ep._process.stdin.write(`-echo2\n${stdErr}\n`);
-                    ep._process.stdin.write('-execute\n');
+                    ep._process.stdin.write(`-echo${EOL}${stdData}${EOL}`);
+                    ep._process.stdin.write(`-echo2${EOL}${stdErr}${EOL}`);
+                    ep._process.stdin.write('-execute${EOL}');
                     const stdDataPromise = new Promise((resolve, reject) => {
                         ep._process.stdout.on('data', resolve);
                     });
@@ -261,8 +262,8 @@ describe('exiftool unit test', function() {
                         ep._process.stderr.on('data', resolve);
                     });
                     return Promise.all([stdDataPromise, stdErrPromise]).then((res) => {
-                        ep._stdoutData.should.equal('hello\n{ready}\n');
-                        ep._stderrData.should.equal('world\n');
+                        ep._stdoutData.should.equal(`hello${EOL}{ready}${EOL}`);
+                        ep._stderrData.should.equal(`world${EOL}`);
                     });
                 });
             });
@@ -284,23 +285,23 @@ describe('exiftool unit test', function() {
     describe('CommandDeferred', function() {
         describe('makeRegExp', function() {
             it('works on single begin and ready', function() {
-                const s = '{begin58600}\n{ready58600}\n'
+                const s = `{begin58600}${EOL}{ready58600}${EOL}`;
                 const re = exiftool.CommandDeferred._makeRegExp(58600);
                 const res = re.exec(s);
                 expect(res).not.to.be.null;
             });
             it('works on single begin and ready with data', function() {
-                const data = 'Some Data\n'
-                const s = `{begin58600}\n${data}{ready58600}\n`;
+                const data = `Some Data${EOL}`
+                const s = `{begin58600}${EOL}${data}{ready58600}${EOL}`;
                 const re = exiftool.CommandDeferred._makeRegExp(58600);
                 const res = re.exec(s);
                 expect(res).not.to.be.null;
                 expect(res[1]).to.equal(data);
             });
             it('works on multiple begin and ready', function() {
-                const data = 'Some Data\n'
-                const s = `{begin58600}\n${data}{ready58600}\n` +
-                        `{begin660832}\n{ready660832}\n`;
+                const data = `Some Data${EOL}`
+                const s = `{begin58600}${EOL}${data}{ready58600}${EOL}` +
+                        `{begin660832}${EOL}{ready660832}${EOL}`;
                 const re = exiftool.CommandDeferred._makeRegExp(58600);
                 const res = re.exec(s);
                 expect(res).not.to.be.null;
