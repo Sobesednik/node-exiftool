@@ -1,6 +1,10 @@
 # node-exiftool
 A Node.js interface to the *exiftool* command-line application.
 
+[![npm version](https://badge.fury.io/js/node-exiftool.svg)](https://badge.fury.io/js/node-exiftool)
+[![Build Status](https://travis-ci.org/Sobesednik/node-exiftool.svg?branch=master)](https://travis-ci.org/Sobesednik/node-exiftool)
+[![Build status](https://ci.appveyor.com/api/projects/status/97p9ur4loqrmfog6/branch/master?svg=true)](https://ci.appveyor.com/project/zavr-1/node-exiftool/branch/master)
+
 [Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/) is an amazing tool written by
 Phil Harvey in Perl which can read and write metadata to a number of file formats. It
 is very powerful and allows to do such things as extracting orientation from JPEG files
