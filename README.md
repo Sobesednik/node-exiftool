@@ -23,19 +23,38 @@ The module spawns an exiftool process with `-stay_open True -@ -` arguments, so 
 there is no overhead related to starting a new process to read every file or directory.
 The package creates a process asynchronously and listens for stdout and stderr `data`
 events and uses promises thus avoiding blocking the Node's event loop.
+
+> Important: since version 2, _exiftool_ is not distributed with _node-exiftool_. The module
+> will try to spawn `exiftool`, therefore you must install it manually. You can also use
+> [dist-exiftool](https://www.npmjs.com/package/dist-exiftool) package which will install
+> _exiftool_ distribution appropriate for your platform.
+
 ### Require
 ```javascript
 const exiftool = require('node-exiftool');
 const ep = new exiftool.ExiftoolProcess();
 ```
+
 ### Custom Executable
 ```javascript
 const exiftool = require('node-exiftool');
 const ep = new exiftool.ExiftoolProcess('/usr/local/exiftool');
 ```
+
+### dist-exiftool
+```bash
+npm i --save dist-exiftool
+```
+```javascript
+const exiftool = require('node-exiftool');
+const exiftoolBin = require('dist-exiftool');
+const ep = new exiftool.ExiftoolProcess(exiftoolBin);
+```
+
 ### Single File
 You are required to open the *exiftool* process first, after which you will be able to
 read and write metadata.
+
 ```javascript
 ep.open().then((pid) => {
     console.log('Started exiftool process %s', pid);
@@ -49,7 +68,8 @@ ep.open().then((pid) => {
     });
 });
 ```
-```
+
+```javascript
 {
   data: [
     {
@@ -82,13 +102,15 @@ ep.open().then((pid) => {
   error: null
 }
 ```
+
 ### Directory
 ```javascript
 ep.readMetadata('DIR').then((res) => {
     console.log(res);
 });
 ```
-```
+
+```javascript
 {
   data: [
     {
@@ -153,25 +175,29 @@ ep.readMetadata('DIR').then((res) => {
   error: '1 directories scanned\n    2 image files read'
 }
 ```
+
 ### File not found
 ```javascript
 ep.readMetadata('filenotfound.jpg').then((res) => {
     console.log(res);
 });
 ```
-```
+
+```javascript
 {
   data: null,
   error: 'File not found: filenotfound.jpg'
 }
 ```
+
 ### Incorrect file format
 ```javascript
 ep.readMetadata('url.html').then((res) => {
     console.log(res);
 });
 ```
-```
+
+```javascript
 {
   data: [
     {
@@ -190,16 +216,20 @@ ep.readMetadata('url.html').then((res) => {
   error: null
 }
 ```
+
 ### Custom Arguments
 You can pass arguments which you wish to use in the *exiftool* command call. They will
 be automatically prepended with the `-` sign so you don't have to do it manually.
+
 ```javascript
 // include only some tags
-ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation']).then((res) => {
-    console.log(res);
-});
+ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation'])
+  .then((res) => {
+      console.log(res);
+  });
 ```
-```
+
+```javascript
 {
   data: [
     {
@@ -212,13 +242,15 @@ ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation']).then(
   error: null
 }
 ```
+
 ```javascript
 // exclude some tags and groups of tags
 ep.readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all']).then((res) => {
     console.log(res);
 });
 ```
-```
+
+```javascript
 {
   data: [
     {
@@ -240,10 +272,10 @@ ep.readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all']).then((res) => {
 }
 ```
 
-
 ### Events
 You can also listen for `OPEN` and `EXIT` events. For example, if the exiftool process
 crashed, you might want to restart it.
+
 ```javascript
 const exiftool = require('./node-exiftool');
 const ep = new exiftool.ExiftoolProcess();
@@ -261,6 +293,7 @@ ep.open().then(() => {
     cp.execSync('pkill -f exiftool');
 });
 ```
+
 ```
 Started exiftool process 95230
 exiftool process exited

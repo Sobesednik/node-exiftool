@@ -9,6 +9,13 @@ const exiftool = require('../index')
 const path = require('path');
 const fs = require('fs');
 const EOL = require('os').EOL;
+const exiftoolBin = require('dist-exiftool');
+
+// exiftool will print "File not found: test/fixtures/no_such_file.jpg"
+// with forward slashes independent of platform
+function replaceSlashes(str) {
+    return str.replace(/\\/g, '/');
+}
 
 describe('exiftool unit test', function() {
     const fixturesDir = 'fixtures';
@@ -23,14 +30,15 @@ describe('exiftool unit test', function() {
     describe('Class', function() {
         let ep;
         beforeEach(function() {
-            ep = new exiftool.ExiftoolProcess();
+            ep = new exiftool.ExiftoolProcess(exiftoolBin);
         });
         afterEach(function() {
-            if(ep.isOpen) {
+            if (ep.isOpen) {
                 return ep.close();
             }
         });
         it('creates new ExiftoolProcess object with default bin', function() {
+            ep = new exiftool.ExiftoolProcess();
             expect(ep instanceof exiftool.ExiftoolProcess).to.be.true;
             expect(ep.isOpen).to.be.false;
             expect(ep._bin).to.be.equal(exiftool.EXIFTOOL_PATH);
@@ -217,7 +225,8 @@ describe('exiftool unit test', function() {
                         res.should.contain.keys(['data','error']);
                         expect(res.data).to.be.null;
                         expect(res.error).to.be.not.null;
-                        res.error.should.equal(`File not found: ${fileDoesNotExist}`);
+                        res.error.should.equal('File not found: '
+                            + replaceSlashes(fileDoesNotExist));
                     });
                 });
             });
@@ -230,12 +239,15 @@ describe('exiftool unit test', function() {
                         res[0].should.contain.keys(['data','error']);
                         expect(res[0].data).to.be.null;
                         expect(res[0].error).to.be.not.null;
-                        res[0].error.should.equal(`File not found: ${fileDoesNotExist}`);
+
+                        res[0].error.should.equal('File not found: '
+                            + replaceSlashes(fileDoesNotExist));
 
                         res[1].should.contain.keys(['data','error']);
                         expect(res[1].data).to.be.null;
                         expect(res[1].error).to.be.not.null;
-                        res[1].error.should.equal(`File not found: ${fileDoesNotExist2}`);
+                        res[1].error.should.equal('File not found: '
+                            + replaceSlashes(fileDoesNotExist2));
                     });
                 });
             });
@@ -254,7 +266,7 @@ describe('exiftool unit test', function() {
                     const stdErr = 'world';
                     ep._process.stdin.write(`-echo${EOL}${stdData}${EOL}`);
                     ep._process.stdin.write(`-echo2${EOL}${stdErr}${EOL}`);
-                    ep._process.stdin.write('-execute${EOL}');
+                    ep._process.stdin.write(`-execute${EOL}`);
                     const stdDataPromise = new Promise((resolve, reject) => {
                         ep._process.stdout.on('data', resolve);
                     });
