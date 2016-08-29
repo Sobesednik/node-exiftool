@@ -28,7 +28,7 @@ class ExiftoolProcess extends EventEmitter {
     }
 
     /**
-     * Kill the exiftool process.
+     * Close the exiftool process by passing -stay_open false.
      * @returns {Promise} a promise to stop the process.
      */
     close() {

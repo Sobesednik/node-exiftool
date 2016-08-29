@@ -277,7 +277,7 @@ You can also listen for `OPEN` and `EXIT` events. For example, if the exiftool p
 crashed, you might want to restart it.
 
 ```javascript
-const exiftool = require('./node-exiftool');
+const exiftool = require('node-exiftool');
 const ep = new exiftool.ExiftoolProcess();
 const cp = require('child_process');
 
