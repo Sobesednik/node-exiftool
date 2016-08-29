@@ -98,15 +98,32 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
-            it('rejects pending deferreds', function() {
+            it('resolves pending deferreds', function() {
                 return ep.open().then(() => {
-                    const p = ep.readMetadata(jpegFile);
-                    const p2 = ep.readMetadata(jpegFile2);
+                    const p = ep.readMetadata(jpegFile).then((res) => {
+                        expect(res.data).to.be.not.null;
+                        expect(res.error).to.be.null;
+                        res.data.forEach((file) => {
+                            file.FileType.should.equal('JPEG');
+                            file.MIMEType.should.equal('image/jpeg');
+                            file.CreatorWorkURL.should.equal('https://sobesednik.media');
+                            file.Creator.should.equal('Anton');
+                            file.Scene.should.equal('011200');
+                        });
+                    });
+                    const p2 = ep.readMetadata(jpegFile2).then((res) => {
+                        expect(res.data).to.be.not.null;
+                        expect(res.error).to.be.null;
+                        res.data.forEach((file) => {
+                            file.FileType.should.equal('JPEG');
+                            file.MIMEType.should.equal('image/jpeg');
+                            file.CreatorWorkURL.should.equal('https://sobesednik.media');
+                            file.Creator.should.equal('Anton');
+                            file.Scene.should.equal('011200');
+                        });
+                    });
                     return ep.close().then(() => {
-                        return Promise.all([
-                            p.should.be.rejectedWith('The process has exited'),
-                            p2.should.be.rejectedWith('The process has exited'),
-                        ]);
+                        return Promise.all([p, p2]);
                     });
                 });
             });
@@ -120,16 +137,12 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
-            it('set open to false when exiftool process is killed', function() {
+            it('sets open to false', function() {
                 return ep.open().then(() => {
-                    const p = new Promise((resolve, reject) => {
-                        ep._process.on('exit', resolve);
-                    });
-                    ep._process.kill();
-                    return p.then(() => {
+                    return ep.close().then(() => {
                         ep.isOpen.should.be.false;
                     });
-                })
+                });
             });
             it('returns rejected promise when process not open', function() {
                 return ep.close().should.be.rejectedWith('Exiftool process is not open');

@@ -8,7 +8,6 @@ function close(process) {
 		});
 		process.stdin.write(`-stay_open${EOL}`);
 		process.stdin.write(`false${EOL}`);
-		process.kill();
 	});
 }
 
