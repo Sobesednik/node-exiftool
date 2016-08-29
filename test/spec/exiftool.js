@@ -1,15 +1,11 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
-const should = chai.should();
-const chaiAsPromised = require('chai-as-promised');
-chai.use(chaiAsPromised);
-const exiftool = require('../index')
 const path = require('path');
 const fs = require('fs');
 const EOL = require('os').EOL;
 const exiftoolBin = require('dist-exiftool');
+const exiftool = require('../../src/index')
+const CommandDeferred = require('../../src/command-deferred');
 
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
@@ -284,44 +280,12 @@ describe('exiftool unit test', function() {
                     const p = ep.readMetadata(jpegFile);
                     ep._deferreds.should.be.an('array');
                     ep._deferreds.length.should.equal(1);
-                    ep._deferreds[0].should.be.instanceof(exiftool.CommandDeferred);
+                    ep._deferreds[0].should.be.instanceof(CommandDeferred);
                     ep._deferreds[0].promise.should.equal(p);
                     return p.then((res) => {
                         ep._deferreds.length.should.equal(0);
                     });
                 });
-            });
-        });
-    });
-
-    describe('CommandDeferred', function() {
-        describe('makeRegExp', function() {
-            it('works on single begin and ready', function() {
-                const s = `{begin58600}${EOL}{ready58600}${EOL}`;
-                const re = exiftool.CommandDeferred._makeRegExp(58600);
-                const res = re.exec(s);
-                expect(res).not.to.be.null;
-            });
-            it('works on single begin and ready with data', function() {
-                const data = `Some Data${EOL}`
-                const s = `{begin58600}${EOL}${data}{ready58600}${EOL}`;
-                const re = exiftool.CommandDeferred._makeRegExp(58600);
-                const res = re.exec(s);
-                expect(res).not.to.be.null;
-                expect(res[1]).to.equal(data);
-            });
-            it('works on multiple begin and ready', function() {
-                const data = `Some Data${EOL}`
-                const s = `{begin58600}${EOL}${data}{ready58600}${EOL}` +
-                        `{begin660832}${EOL}{ready660832}${EOL}`;
-                const re = exiftool.CommandDeferred._makeRegExp(58600);
-                const res = re.exec(s);
-                expect(res).not.to.be.null;
-                expect(res[1]).to.equal(data);
-                const re2 = exiftool.CommandDeferred._makeRegExp(660832);
-                const res2 = re2.exec(s);
-                expect(res2).not.to.be.null;
-                expect(res2[1]).to.equal('');
             });
         });
     });
