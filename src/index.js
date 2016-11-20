@@ -5,7 +5,7 @@ const path = require('path');
 const EventEmitter = require('events');
 const EOL = require('os').EOL;
 const lib = require('./lib');
-const CommandDeferred = require('./command-deferred');
+const BeginReadySnitch = require('./begin-ready-snitch')
 
 const EXIFTOOL_PATH = 'exiftool';
 
@@ -56,12 +56,8 @@ class ExiftoolProcess extends EventEmitter {
 
             process.on('exit', () => this._exitListener());
 
-            this._stdoutData = '';
-            this._stderrData = '';
-            this._deferreds = [];
-
-            process.stdout.on('data', data => this._stdoutListener(data));
-            process.stderr.on('data', data => this._stderrListener(data));
+            this._stdoutSnitch = new BeginReadySnitch(process.stdout)
+            this._stderrSnitch = new BeginReadySnitch(process.stderr)
 
             this._open = true;
 
@@ -72,37 +68,7 @@ class ExiftoolProcess extends EventEmitter {
     _exitListener() {
         //console.log('exfitool process exit');
         this.emit(events.EXIT);
-        this._deferreds.forEach((d) => {
-            d.reject(new Error('The process has exited'));
-        });
-        this._deferreds.length = 0; //empty array
         this._open = false; // try to respawn?
-    }
-
-    _stdoutListener(data) {
-        //console.log(`---\n[+] exiftool stdout:\n"${String(data).trim()}"\n---`);
-        this._stdoutData += data;
-        this._deferreds.forEach((d) => {
-            if(!d.hasData) {
-                const res = d.matchData(this._stdoutData);
-                if (res) {
-                    this._stdoutData = this._stdoutData.split(res).join('');
-                }
-            }
-        });
-    }
-
-    _stderrListener(data) {
-        //console.log(`---\n[+] exiftool stderr:\n"${String(data).trim()}"\n---`);
-        this._stderrData += data;
-        this._deferreds.forEach((d) => {
-            if(!d.hasError) {
-                const res = d.matchError(this._stderrData);
-                if (res) {
-                    this._stderrData = this._stderrData.split(res).join('');
-                }
-            }
-        });
     }
 
     /**
@@ -122,19 +88,7 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Could not connect to the exiftool process'));
         }
 
-        const deferred = new CommandDeferred();
-        this._deferreds.push(deferred);
-
-        lib.execute(this._process, command, deferred.commandNumber, args);
-
-        deferred.promise.then(() => {
-            const index = this._deferreds.indexOf(deferred);
-            if (index > -1) {
-                this._deferreds.splice(index, 1);
-            }
-        });
-
-        return deferred.promise;
+        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args);
     }
 
     /**
