@@ -2,13 +2,19 @@ const cp = require('child_process');
 const EOL = require('os').EOL;
 
 function close(process) {
-	return new Promise((resolve) => {
-		process.on('close', (code, signal) => {
-			resolve(code);
-		});
-		process.stdin.write(`-stay_open${EOL}`);
-		process.stdin.write(`false${EOL}`);
-	});
+    return new Promise((resolve) => {
+        process.on('close', (code, signal) => {
+            resolve(code);
+        });
+        process.stdin.write(`-stay_open${EOL}`);
+        process.stdin.write(`false${EOL}`);
+    });
+}
+
+function writeStdIn(process, data) {
+    // console.log('write stdin', data);
+    process.stdin.write(data);
+    process.stdin.write(EOL);
 }
 
 /**
@@ -24,38 +30,76 @@ function execute(process, command, commandNumber, args) {
 
     command = command !== undefined ? command : '';
 
-    process.stdin.write(argsString);
-    process.stdin.write(EOL);
-    process.stdin.write(`-json${EOL}`);
-    process.stdin.write(`-s${EOL}`);
-    process.stdin.write(command);
-    process.stdin.write(EOL);
-    process.stdin.write(`-echo1${EOL}{begin${commandNumber}}${EOL}`);
-    process.stdin.write(`-echo2${EOL}{begin${commandNumber}}${EOL}`);
-    process.stdin.write(`-echo4${EOL}{ready${commandNumber}}${EOL}`);
-    process.stdin.write(`-execute${commandNumber}${EOL}`);
+    if (argsString) writeStdIn(process, argsString);
+    writeStdIn(process, '-json');
+    writeStdIn(process, '-s');
+    writeStdIn(process, command);
+    writeStdIn(process, '-echo1');
+    writeStdIn(process, `{begin${commandNumber}}`);
+    writeStdIn(process, '-echo2');
+    writeStdIn(process, `{begin${commandNumber}}`);
+    writeStdIn(process, '-echo4');
+    writeStdIn(process, `{ready${commandNumber}}`);
+    writeStdIn(process, `-execute${commandNumber}`);
+}
+
+function getCommandNumber() {
+    return Math.floor(Math.random() * 1000000);
+}
+
+function createHandler(commandNumber, snitch, cb) {
+    const handler = (data) => {
+        if (data.commandNumber === commandNumber) {
+            snitch.removeListener('data', handler)
+            cb(data.data)
+        }
+    }
+    snitch.on('data', handler)
+}
+
+function executeCommand(process, stdoutSnitch, stderrSnitch, command, args) {
+    const commandNumber = getCommandNumber();
+
+    const dataPromise = new Promise(resolve =>
+        createHandler(commandNumber, stdoutSnitch, resolve)
+    );
+
+    const errPromise = new Promise(resolve =>
+        createHandler(commandNumber, stderrSnitch, resolve)
+    );
+
+    execute(process, command, commandNumber, args);
+
+    return Promise.all([
+        dataPromise,
+        errPromise
+    ])
+        .then(res => ({
+            data: res[0] ? JSON.parse(res[0]) : null,
+            error: res[1] || null,
+        }));
 }
 
 function spawn(bin) {
     return new Promise((resolve, reject) => {
-        const echo = String(Date.now());
-        const process = cp.spawn(bin, ['-echo2', echo, '-stay_open', 'True', '-@', '-']);
-        process.on('error', (err) => {
-            reject(err);
-        });
+        const echoString = Date.now().toString();
+        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', '-']);
+        process.once('error', reject);
         const echoHandler = (data) => {
+            const d = data.toString().trim();
             // listening for echo2 in stderr (echo and echo1 won't work)
-            if (String(data).trim() === echo) {
-                process.stderr.removeListener('data', echoHandler);
+            if (d === echoString) {
                 resolve(process);
+            } else {
+                reject(new Error(`Unexpected string on start: ${d}`))
             }
         }
-        process.stderr.on('data', echoHandler);
+        process.stderr.once('data', echoHandler);
     });
 }
 
 module.exports = {
-	spawn,
-	close,
-    execute,
+    spawn,
+    close,
+    executeCommand,
 }

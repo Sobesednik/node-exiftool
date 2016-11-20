@@ -5,7 +5,6 @@ const fs = require('fs');
 const EOL = require('os').EOL;
 const exiftoolBin = require('dist-exiftool');
 const exiftool = require('../../src/index')
-const CommandDeferred = require('../../src/command-deferred');
 
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
@@ -98,7 +97,7 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
-            it('resolves pending deferreds', function() {
+            it('completes remaining jobs', function() {
                 return ep.open().then(() => {
                     const p = ep.readMetadata(jpegFile).then((res) => {
                         expect(res.data).to.be.not.null;
@@ -192,7 +191,7 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
-            it('reads metadta of a file', function() {
+            it('reads metadata of a file', function() {
                 return ep.open().then(() => {
                     return ep.readMetadata(jpegFile).then((res) => {
                         expect(res.error).to.be.null;
@@ -239,11 +238,13 @@ describe('exiftool unit test', function() {
                     });
                 });
             });
-            it('works fine with 2 simultaneous requests', function() {
+            it('works with simultaneous requests', function() {
                 return ep.open().then(() => {
                     return Promise.all([
                         ep.readMetadata(fileDoesNotExist),
                         ep.readMetadata(fileDoesNotExist2),
+                        ep.readMetadata(jpegFile),
+                        ep.readMetadata(jpegFile2),
                     ]).then((res) => {
                         res[0].should.contain.keys(['data','error']);
                         expect(res[0].data).to.be.null;
@@ -257,46 +258,6 @@ describe('exiftool unit test', function() {
                         expect(res[1].error).to.be.not.null;
                         res[1].error.should.equal('File not found: '
                             + replaceSlashes(fileDoesNotExist2));
-                    });
-                });
-            });
-        });
-
-        describe('appending stream data', function() {
-            it('initialises string variables', function() {
-                return ep.open().then(() => {
-                    ep._stdoutData.should.equal('');
-                    ep._stderrData.should.equal('');
-                });
-            });
-            it('appends data on stderr', function() {
-                return ep.open().then(() => {
-                    const stdData = 'hello';
-                    const stdErr = 'world';
-                    ep._process.stdin.write(`-echo${EOL}${stdData}${EOL}`);
-                    ep._process.stdin.write(`-echo2${EOL}${stdErr}${EOL}`);
-                    ep._process.stdin.write(`-execute${EOL}`);
-                    const stdDataPromise = new Promise((resolve, reject) => {
-                        ep._process.stdout.on('data', resolve);
-                    });
-                    const stdErrPromise = new Promise((resolve, reject) => {
-                        ep._process.stderr.on('data', resolve);
-                    });
-                    return Promise.all([stdDataPromise, stdErrPromise]).then((res) => {
-                        ep._stdoutData.should.equal(`hello${EOL}{ready}${EOL}`);
-                        ep._stderrData.should.equal(`world${EOL}`);
-                    });
-                });
-            });
-            it('stores CommandDeferred in an array and removes it upon fulfillment', function() {
-                return ep.open().then(() => {
-                    const p = ep.readMetadata(jpegFile);
-                    ep._deferreds.should.be.an('array');
-                    ep._deferreds.length.should.equal(1);
-                    ep._deferreds[0].should.be.instanceof(CommandDeferred);
-                    ep._deferreds[0].promise.should.equal(p);
-                    return p.then((res) => {
-                        ep._deferreds.length.should.equal(0);
                     });
                 });
             });
