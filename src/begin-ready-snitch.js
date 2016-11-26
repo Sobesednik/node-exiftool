@@ -1,8 +1,8 @@
 'use strict'
-const EventEmitter = require('events');
-const StreamSnitch = require('stream-snitch');
+const EventEmitter = require('events')
+const StreamSnitch = require('stream-snitch')
 
-const BEGIN_READY_RE = /{begin(\d+)}([\s\S]*){ready(\d+)}/
+const BEGIN_READY_RE = /{begin(\d+)}([\s\S]*){ready\1}/g
 
 class BeginReadySnitch extends EventEmitter {
     constructor(stream) {
@@ -18,4 +18,4 @@ class BeginReadySnitch extends EventEmitter {
     }
 }
 
-module.exports = BeginReadySnitch;
+module.exports = BeginReadySnitch

@@ -3,6 +3,7 @@ const Readable = require('stream').Readable
 const BeginReadySnitch = require('../../src/begin-ready-snitch')
 
 const commandNumber = 376080
+const commandNumber2 = 65754
 
 const data = `
 [{
@@ -34,10 +35,22 @@ const data = `
 `
     .trim()
 
+const data2 = 'File not found: test/fixtures/no_such_file2.jpg'
+
 const s = `
 {begin${commandNumber}}
 ${data}
 {ready${commandNumber}}
+`
+    .trim()
+
+const s2 = `
+{begin${commandNumber}}
+${data}
+{ready${commandNumber}}
+{begin${commandNumber2}}
+${data2}
+{ready${commandNumber2}}
 `
     .trim()
 
@@ -55,4 +68,28 @@ module.exports = {
                 assert(res.data === data)
             })
     },
+    'emits events on multiple data entries': () => {
+        const rs = Readable()
+        rs._read = () => {
+            rs.push(s2)
+            rs.push(null)
+        }
+        const brs = new BeginReadySnitch(rs)
+        const createHandler = (brs, commandNumber, resolve) => {
+            brs.on('data', (data) => {
+                if (data.commandNumber === commandNumber) resolve(data)
+            })
+        }
+        const p = new Promise(resolve => createHandler(brs, commandNumber, resolve))
+        const p2 = new Promise(resolve => createHandler(brs, commandNumber2, resolve))
+
+        return Promise
+            .all([p, p2])
+            .then((res) => {
+                assert(res[0].commandNumber === commandNumber)
+                assert(res[0].data === data)
+                assert(res[1].commandNumber === commandNumber2)
+                assert(res[1].data === data2)
+            })
+    }
 }
