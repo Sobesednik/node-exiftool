@@ -99,6 +99,21 @@ class ExiftoolProcess extends EventEmitter {
     readMetadata(file, args) {
         return this._executeCommand(file, args)
     }
+
+    /**
+     * Write metadata to a file or directory.
+     * @param {string} file - path to the file or directory
+     * @param {Object} data - data to write, with keys as tags.
+     * @returns {Promise} a promise to write metadata
+     */
+    writeMetadata(file, data, args) {
+        const execArgs = Array.isArray(args) ? args : []
+        if (!lib.checkDataObject(data)) {
+            return Promise.reject(new Error('Data argument is not an object'))
+        }
+        lib.mapDataToTagArray(data, execArgs)
+        return this._executeCommand(file, execArgs)
+    }
 }
 
 module.exports = {

@@ -1,20 +1,18 @@
 const cp = require('child_process')
 const EOL = require('os').EOL
 
-function close(process) {
-    return new Promise((resolve) => {
-        process.on('close', (code) => {
-            resolve(code)
-        })
-        process.stdin.write(`-stay_open${EOL}`)
-        process.stdin.write(`false${EOL}`)
-    })
-}
-
 function writeStdIn(process, data) {
     // console.log('write stdin', data);
     process.stdin.write(data)
     process.stdin.write(EOL)
+}
+
+function close(process) {
+    return new Promise((resolve) => {
+        process.on('close', resolve)
+        writeStdIn(process, '-stay_open')
+        writeStdIn(process, 'false')
+    })
 }
 
 /**
@@ -98,8 +96,32 @@ function spawn(bin) {
     })
 }
 
+function checkDataObject(data) {
+    return data === Object(data) && !Array.isArray(data)
+}
+
+function mapDataToTagArray(data, array) {
+    const res = Array.isArray(array) ? array : []
+    Object
+        .keys(data)
+        .forEach(tag => {
+            const value = data[tag]
+            if (Array.isArray(value)) {
+                value.forEach((v) => {
+                    const arg = `${tag}=${v}`
+                    res.push(arg)
+                })
+            } else {
+                res.push(`${tag}=${value}`)
+            }
+        })
+    return res
+}
+
 module.exports = {
     spawn,
     close,
     executeCommand,
+    checkDataObject,
+    mapDataToTagArray,
 }

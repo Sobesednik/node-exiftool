@@ -1,4 +1,5 @@
 # node-exiftool
+
 A Node.js interface to the *exiftool* command-line application.
 
 [![npm version](https://badge.fury.io/js/node-exiftool.svg)](https://badge.fury.io/js/node-exiftool)
@@ -12,61 +13,91 @@ uploaded to your server by users to rotate generated previews accordingly, as we
 as appending copyright information to photos using
 [IPTC standard](https://iptc.org/standards/photo-metadata/iptc-standard/).
 
-This npm package has a preinstall script which will fetch exiftool's source from
-[SourceForge](https://sourceforge.net/projects/exiftool/) with curl and extract it
-into the `/vendor` directory. This means you don't have to have *exiftool* preinstalled
-to use this software, however if you do, you can also specify a path to the executable as
-shown below.
-
-## Usage
-The module spawns an exiftool process with `-stay_open True -@ -` arguments, so that
-there is no overhead related to starting a new process to read every file or directory.
-The package creates a process asynchronously and listens for stdout and stderr `data`
-events and uses promises thus avoiding blocking the Node's event loop.
-
 > Important: since version 2, _exiftool_ is not distributed with _node-exiftool_. The module
 > will try to spawn `exiftool`, therefore you must install it manually. You can also use
 > [dist-exiftool](https://www.npmjs.com/package/dist-exiftool) package which will install
 > _exiftool_ distribution appropriate for your platform.
 
+## Usage
+
+The module spawns an exiftool process with `-stay_open True -@ -` arguments, so that
+there is no overhead related to starting a new process to read every file or directory.
+The package creates a process asynchronously and listens for stdout and stderr `data`
+events and uses promises thus avoiding blocking the Node's event loop.
+
 ### Require
+
 ```javascript
-const exiftool = require('node-exiftool');
-const ep = new exiftool.ExiftoolProcess();
+const exiftool = require('node-exiftool')
+const ep = new exiftool.ExiftoolProcess()
 ```
 
 ### Custom Executable
+
 ```javascript
-const exiftool = require('node-exiftool');
-const ep = new exiftool.ExiftoolProcess('/usr/local/exiftool');
+const exiftool = require('node-exiftool')
+const ep = new exiftool.ExiftoolProcess('/usr/local/exiftool')
 ```
 
 ### dist-exiftool
+
 ```bash
 npm i --save dist-exiftool
 ```
+
 ```javascript
-const exiftool = require('node-exiftool');
-const exiftoolBin = require('dist-exiftool');
-const ep = new exiftool.ExiftoolProcess(exiftoolBin);
+const exiftool = require('node-exiftool')
+const exiftoolBin = require('dist-exiftool')
+const ep = new exiftool.ExiftoolProcess(exiftoolBin)
 ```
 
-### Single File
+### Writing Metadata
+
+Since version `2.1.0`, you can write metadata. The API is:
+`writeMetadata(file, data, args)`, where `file` is a string with path to your file,
+`data` is an object, e.g.,
+
+```javascript
+const data = {
+  all: '',
+  comment: 'Exiftool rules!', // has to come after `all` in order not to be removed
+  'Keywords+': [ 'keywordA', 'keywordB' ],
+}
+```
+
+and `args` is an array of any other arguments you wish to pass, e.g,. `['overwrite_original']`.
+
+```javascript
+const ep = new exiftool.ExiftoolProcess()
+ep
+  .open()
+  .then(() => ep.writeMetadata('destination.jpg', {
+    all: '', // remove existing tags
+    comment: 'Exiftool rules!',
+    'Keywords+': [ 'keywordA', 'keywordB' ],
+  }, ['overwrite_original']))
+  .then(console.log)
+```
+
+```javascript
+{ data: null, error: '1 image files updated' }
+```
+
+### Reading Single File
+
 You are required to open the *exiftool* process first, after which you will be able to
 read and write metadata.
 
 ```javascript
-ep.open().then((pid) => {
-    console.log('Started exiftool process %s', pid);
-    return ep.readMetadata('photo.jpg').then((res) => {
-        console.log(res);
-    });
-    // repeat as many times as required
-}).then(() => {
-    return ep.close().then(() => {
-        console.log('Closed exiftool');
-    });
-});
+const ep = new exiftool.ExiftoolProcess()
+ep
+  .open()
+  .then((pid) => console.log('Started exiftool process %s', pid))
+  .then(() => ep.readMetadata('photo.jpg'))
+  .then(console.log)
+  // repeat as many times as required
+  .then(() => ep.close())
+  .then(() => console.log('Closed exiftool'))
 ```
 
 ```javascript
@@ -103,11 +134,13 @@ ep.open().then((pid) => {
 }
 ```
 
-### Directory
+### Reading Directory
+
 ```javascript
-ep.readMetadata('DIR').then((res) => {
-    console.log(res);
-});
+const ep = new exiftool.ExiftoolProcess()
+ep
+  .readMetadata('DIR')
+  .then(console.log)
 ```
 
 ```javascript
@@ -176,11 +209,13 @@ ep.readMetadata('DIR').then((res) => {
 }
 ```
 
-### File not found
+### Reading Non-existent File
+
 ```javascript
-ep.readMetadata('filenotfound.jpg').then((res) => {
-    console.log(res);
-});
+const ep = new exiftool.ExiftoolProcess()
+ep
+  .readMetadata('filenotfound.jpg')
+  .then(console.log)
 ```
 
 ```javascript
@@ -191,10 +226,12 @@ ep.readMetadata('filenotfound.jpg').then((res) => {
 ```
 
 ### Incorrect file format
+
 ```javascript
-ep.readMetadata('url.html').then((res) => {
-    console.log(res);
-});
+const ep = new exiftool.ExiftoolProcess()
+ep
+  .readMetadata('url.html')
+  .then(console.log)
 ```
 
 ```javascript
@@ -218,15 +255,16 @@ ep.readMetadata('url.html').then((res) => {
 ```
 
 ### Custom Arguments
+
 You can pass arguments which you wish to use in the *exiftool* command call. They will
 be automatically prepended with the `-` sign so you don't have to do it manually.
 
 ```javascript
+const ep = new exiftool.ExiftoolProcess()
 // include only some tags
-ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation'])
-  .then((res) => {
-      console.log(res);
-  });
+ep
+  .readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation'])
+  .then(console.log)
 ```
 
 ```javascript
@@ -244,10 +282,11 @@ ep.readMetadata('photo.jpg', ['Creator', 'CreatorWorkURL', 'Orientation'])
 ```
 
 ```javascript
+const ep = new exiftool.ExiftoolProcess()
 // exclude some tags and groups of tags
-ep.readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all']).then((res) => {
-    console.log(res);
-});
+ep
+  .readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all'])
+  .then(console.log)
 ```
 
 ```javascript
@@ -272,26 +311,33 @@ ep.readMetadata('photo.jpg', ['-ExifToolVersion', '-File:all']).then((res) => {
 }
 ```
 
+> There is a bug at the moment when you cannot specify value for an argument. You can avoid it
+by specifying an argument with `require('os').EOL` between the key and value, e.g.,
+``readMetadata('photo.jpg', [`-o${require('os').EOL}metadata.txt`])``.
+
 ### Events
+
 You can also listen for `OPEN` and `EXIT` events. For example, if the exiftool process
 crashed, you might want to restart it.
 
 ```javascript
-const exiftool = require('node-exiftool');
-const ep = new exiftool.ExiftoolProcess();
-const cp = require('child_process');
+const exiftool = require('node-exiftool')
+const ep = new exiftool.ExiftoolProcess()
+const cp = require('child_process')
 
-ep.on(exiftool.events.OPEN, (pid) => {
-    console.log('Started exiftool process %s', pid);
-});
-ep.on(exiftool.events.EXIT, () => {
-    console.log('exiftool process exited');
-    ep.open();
-});
+ep
+  .on(exiftool.events.OPEN, (pid) => {
+    console.log('Started exiftool process %s', pid)
+  })
+ep
+  .on(exiftool.events.EXIT, () => {
+    console.log('exiftool process exited')
+    ep.open()
+  })
 
-ep.open().then(() => {
-    cp.execSync('pkill -f exiftool');
-});
+ep
+  .open()
+  .then(() => cp.execSync('pkill -f exiftool'))
 ```
 
 ```
@@ -301,6 +347,7 @@ Started exiftool process 95232
 ```
 
 ## Metadata
+
 Metadata is awesome and although it can increase the file size, it preserves copyright
 and allows to find out additional information and the author of an image/movie. Let's
 all use metadata.
