@@ -1,13 +1,9 @@
-'use strict';
-const cp = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const EventEmitter = require('events');
-const EOL = require('os').EOL;
-const lib = require('./lib');
+'use strict'
+const EventEmitter = require('events')
+const lib = require('./lib')
 const BeginReadySnitch = require('./begin-ready-snitch')
 
-const EXIFTOOL_PATH = 'exiftool';
+const EXIFTOOL_PATH = 'exiftool'
 
 const events = {
     OPEN: 'exiftool_opened',
@@ -21,10 +17,10 @@ class ExiftoolProcess extends EventEmitter {
      * @param {string} [bin=vendor/Image-ExifTool/exiftool] - path to executable
      */
     constructor(bin) {
-        super();
-        this._bin = bin !== undefined ? bin : EXIFTOOL_PATH;
-        this._process = undefined;
-        this._open = false;
+        super()
+        this._bin = bin !== undefined ? bin : EXIFTOOL_PATH
+        this._process = undefined
+        this._open = false
     }
 
     /**
@@ -33,12 +29,12 @@ class ExiftoolProcess extends EventEmitter {
      */
     close() {
         if (!this._open) {
-            return Promise.reject(new Error('Exiftool process is not open'));
+            return Promise.reject(new Error('Exiftool process is not open'))
         }
         return lib.close(this._process)
             .then(() => {
-                this._open = false;
-            });
+                this._open = false
+            })
     }
 
     /**
@@ -47,28 +43,29 @@ class ExiftoolProcess extends EventEmitter {
      */
     open() {
         if (this._open) {
-            return Promise.reject(new Error('Exiftool process is already open'));
+            return Promise.reject(new Error('Exiftool process is already open'))
         }
-        return lib.spawn(this._bin).then((process) => {
-            //console.log(`Started exiftool process %s`, process.pid);
-            this.emit(events.OPEN, process.pid);
-            this._process = process;
+        return lib.spawn(this._bin)
+            .then((process) => {
+                //console.log(`Started exiftool process %s`, process.pid);
+                this.emit(events.OPEN, process.pid)
+                this._process = process
 
-            process.on('exit', () => this._exitListener());
+                process.on('exit', this._exitListener.bind(this))
 
-            this._stdoutSnitch = new BeginReadySnitch(process.stdout)
-            this._stderrSnitch = new BeginReadySnitch(process.stderr)
+                this._stdoutSnitch = new BeginReadySnitch(process.stdout)
+                this._stderrSnitch = new BeginReadySnitch(process.stderr)
 
-            this._open = true;
+                this._open = true
 
-            return process.pid;
-        });
+                return process.pid
+            })
     }
 
     _exitListener() {
         //console.log('exfitool process exit');
-        this.emit(events.EXIT);
-        this._open = false; // try to respawn?
+        this.emit(events.EXIT)
+        this._open = false // try to respawn?
     }
 
     /**
@@ -76,19 +73,19 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {boolean} true if open and false otherwise.
      */
     get isOpen() {
-        return this._open;
+        return this._open
     }
 
     _executeCommand(command, args) {
         //test this!
         if (!this._open) {
-            return Promise.reject(new Error('exiftool is not open'));
+            return Promise.reject(new Error('exiftool is not open'))
         }
         if (this._process.signalCode === 'SIGTERM') {
-            return Promise.reject(new Error('Could not connect to the exiftool process'));
+            return Promise.reject(new Error('Could not connect to the exiftool process'))
         }
 
-        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args);
+        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args)
     }
 
     /**
@@ -100,7 +97,7 @@ class ExiftoolProcess extends EventEmitter {
      * (string or null) properties from stdout and stderr of exiftool.
      */
     readMetadata(file, args) {
-        return this._executeCommand(file, args);
+        return this._executeCommand(file, args)
     }
 }
 
