@@ -311,10 +311,6 @@ ep
 }
 ```
 
-> There is a bug at the moment when you cannot specify value for an argument. You can avoid it
-by specifying an argument with `require('os').EOL` between the key and value, e.g.,
-``readMetadata('photo.jpg', [`-o${require('os').EOL}metadata.txt`])``.
-
 ### Events
 
 You can also listen for `OPEN` and `EXIT` events. For example, if the exiftool process

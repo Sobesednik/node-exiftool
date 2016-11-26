@@ -1,4 +1,5 @@
 const assert = require('assert')
+const EOL = require('os').EOL
 const lib = require('../../src/lib')
 
 const libTestSuite = {
@@ -56,6 +57,67 @@ const libTestSuite = {
             assert(array[3] === 'tagC+=valueC1')
             assert(array[4] === 'tagC+=valueC2')
         },
+    },
+    'getArgs': {
+        'should map args array to a string': () => {
+            const args = ['Creator', 'CreatorWorkURL', 'Orientation']
+            const res = lib.getArgs(args)
+            const expected = ['-Creator', '-CreatorWorkURL', '-Orientation']
+            assert(res.length === expected.length)
+            res.forEach((arg, index) =>
+                assert(arg === expected[index])
+            )
+        },
+        'should exclude non-strings': () => {
+            const args = ['Creator', 'CreatorWorkURL', 'Orientation', false, NaN, 1024]
+            const res = lib.getArgs(args)
+            const expected = ['-Creator', '-CreatorWorkURL', '-Orientation']
+            assert(res.length === expected.length)
+            res.forEach((arg, index) =>
+                assert(arg === expected[index])
+            )
+        },
+        'should split arguments': () => {
+            const args = ['Creator', 'ext dng', 'o  metadata.txt']
+            const res = lib.getArgs(args)
+            const expected = ['-Creator', '-ext', 'dng', '-o', 'metadata.txt']
+            assert(res.length === expected.length)
+            res.forEach((arg, index) =>
+                assert(arg === expected[index])
+            )
+        },
+        'should not split arguments with noSplit': () => {
+            const args = ['keywords+=keyword A', 'keywords+=keyword B', 'comment=hello world']
+            const res = lib.getArgs(args, true)
+            const expected = ['-keywords+=keyword A', '-keywords+=keyword B', '-comment=hello world']
+            assert(res.length === expected.length)
+            res.forEach((arg, index) =>
+                assert(arg === expected[index])
+            )
+        }
+    },
+    'execute': {
+        'should write to process stdin': () => {
+            const records = []
+            const process = {
+                stdin: {
+                    write: record => records.push(record),
+                },
+            }
+            const command = 'file.jpg'
+            const commandNumber = 1
+            const args = [ 'Creator', 'ext dng', 'o  metadata.txt', false, NaN ]
+            const noSplitArgs = [ 'comment=hello world' ]
+            lib.execute(process, command, commandNumber, args, noSplitArgs)
+            const expected = [ '-Creator', EOL, '-ext', EOL, 'dng', EOL, '-o', EOL, 'metadata.txt',
+                EOL, '-comment=hello world', EOL, '-json', EOL, '-s', EOL, 'file.jpg', EOL,
+                '-echo1', EOL, '{begin1}', EOL, '-echo2', EOL, '{begin1}', EOL, '-echo4', EOL,
+                '{ready1}', EOL, '-execute1', EOL ]
+            assert(records.length === expected.length)
+            records.forEach((arg, index) =>
+                assert(arg === expected[index])
+            )
+        }
     }
 }
 

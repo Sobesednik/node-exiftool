@@ -76,7 +76,7 @@ class ExiftoolProcess extends EventEmitter {
         return this._open
     }
 
-    _executeCommand(command, args) {
+    _executeCommand(command, args, argsNoSplit) {
         //test this!
         if (!this._open) {
             return Promise.reject(new Error('exiftool is not open'))
@@ -85,7 +85,7 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Could not connect to the exiftool process'))
         }
 
-        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args)
+        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args, argsNoSplit)
     }
 
     /**
@@ -107,12 +107,11 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise to write metadata
      */
     writeMetadata(file, data, args) {
-        const execArgs = Array.isArray(args) ? args : []
         if (!lib.checkDataObject(data)) {
             return Promise.reject(new Error('Data argument is not an object'))
         }
-        lib.mapDataToTagArray(data, execArgs)
-        return this._executeCommand(file, execArgs)
+        const writeArgs = lib.mapDataToTagArray(data)
+        return this._executeCommand(file, args, writeArgs)
     }
 }
 

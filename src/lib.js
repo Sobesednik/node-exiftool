@@ -2,7 +2,7 @@ const cp = require('child_process')
 const EOL = require('os').EOL
 
 function writeStdIn(process, data) {
-    // console.log('write stdin', data);
+    // console.log('write stdin', data)
     process.stdin.write(data)
     process.stdin.write(EOL)
 }
@@ -15,6 +15,26 @@ function close(process) {
     })
 }
 
+function getArgs(args, noSplit) {
+    const res = []
+    if (Array.isArray(args)) {
+        args
+            .forEach(arg => {
+                if (['string', 'String'].indexOf(typeof arg) !== -1) {
+                    const prefixedArg = `-${arg}`
+                    if (noSplit) {
+                        res.push(prefixedArg)
+                    } else {
+                        prefixedArg
+                            .split(/\s+/)
+                            .forEach(a => res.push(a))
+                    }
+                }
+            })
+    }
+    return res
+}
+
 /**
  * Write command data to the exiftool's stdin.
  * @param {ChildProcess} process - exiftool process executed with -stay_open True -@ -
@@ -22,13 +42,18 @@ function close(process) {
  * @param {string} commandNumber - text which will be echoed before and after results
  * @param {Array} args - any additional arguments
  */
-function execute(process, command, commandNumber, args) {
-    args = args !== undefined ? args : []
-    const argsString = args.length ? args.map(arg => `-${arg}`).join(EOL) : ''
+function execute(process, command, commandNumber, args, noSplitArgs) {
+    const extendedArgs = getArgs(args)
+    const extendedArgsNoSplit = getArgs(noSplitArgs, true)
 
     command = command !== undefined ? command : ''
 
-    if (argsString) writeStdIn(process, argsString)
+    // write user arguments
+    extendedArgs
+        .forEach(writeStdIn.bind(null, process))
+    extendedArgsNoSplit
+        .forEach(writeStdIn.bind(null, process))
+
     writeStdIn(process, '-json')
     writeStdIn(process, '-s')
     writeStdIn(process, command)
@@ -55,7 +80,7 @@ function createHandler(commandNumber, snitch, cb) {
     snitch.on('data', handler)
 }
 
-function executeCommand(process, stdoutSnitch, stderrSnitch, command, args) {
+function executeCommand(process, stdoutSnitch, stderrSnitch, command, args, noSplitArgs) {
     const commandNumber = getCommandNumber()
 
     const dataPromise = new Promise(resolve =>
@@ -66,7 +91,7 @@ function executeCommand(process, stdoutSnitch, stderrSnitch, command, args) {
         createHandler(commandNumber, stderrSnitch, resolve)
     )
 
-    execute(process, command, commandNumber, args)
+    execute(process, command, commandNumber, args, noSplitArgs)
 
     return Promise.all([
         dataPromise,
@@ -124,4 +149,6 @@ module.exports = {
     executeCommand,
     checkDataObject,
     mapDataToTagArray,
+    getArgs,
+    execute,
 }

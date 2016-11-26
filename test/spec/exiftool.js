@@ -26,6 +26,7 @@ const emptyFolder = path.join(testDir, fixturesDir, 'empty')
 // create temp file for writing metadata
 const tempFile = path.join(os.tmpdir(), `node-exiftool_test_${Math.floor(Math.random() * 100000)}.jpg`)
 fs.writeFileSync(tempFile, fs.readFileSync(jpegFile))
+// console.log(tempFile)
 
 const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
     fs.unlink(tempFile, err => (err ? reject(err) : resolve()))
@@ -311,7 +312,7 @@ const exiftoolTestSuite = {
         'should write metadata': () => {
             const ep = startExiftool()
             const keywords = [ 'keywordA', 'keywordB' ]
-            const comment = 'hello_world'
+            const comment = 'hello world'
             const data = {
                 all: '',
                 comment, // has to come after all in order not to be removed
