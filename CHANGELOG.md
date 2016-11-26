@@ -1,0 +1,65 @@
+<a name="2.0.3"></a>
+# [2.0.3](https://github.com/Sobesednik/node-exiftool/compare/v2.0.2...v2.0.3) (2016-11-26)
+
+### Bug Fixes
+
+* Correctly parse _exiftool_ response when reading files in parallel ([c0db314](https://github.com/Sobesednik/node-exiftool/commit/c0db314)), closes [#9](https://github.com/Sobesednik/node-exiftool/issues/9)
+
+<a name="2.0.2"></a>
+# [2.0.2](https://github.com/Sobesednik/node-exiftool/compare/v2.0.1...v2.0.2) (2016-11-26)
+
+### Code Refactoring
+
+* Use [zoroarser](https://www.npmjs.com/package/zoroaster) for testing ([0ee8331](https://github.com/Sobesednik/node-exiftool/commit/0ee8331))
+
+<a name="2.0.1"></a>
+# [2.0.1](https://github.com/Sobesednik/node-exiftool/compare/v2.0.0...v2.0.1) (2016-11-20)
+
+### Code Refactoring
+
+* Use [stream-snitch](https://www.npmjs.com/package/stream-snitch) to listen for events from _exiftool_ process ([7e1542f](https://github.com/Sobesednik/node-exiftool/commit/7e1542f))
+
+### Bug Fixes
+
+* Don't kill the process after sending `-stay_open false` ([16485e1](https://github.com/Sobesednik/node-exiftool/commit/16485e1))
+
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/Sobesednik/node-exiftool/compare/v1.0.4...v2.0.0) (2016-08-21)
+
+### Features
+
+* Appveyor and travis ([bc5547c](https://github.com/Sobesednik/node-exiftool/commit/bc5547c))
+
+### Bug Fixes
+
+* Send `EOL` instead of `\n` in tests ([bc5547c](https://github.com/Sobesednik/node-exiftool/commit/bc5547c))
+
+### BREAKING CHANGES
+
+* _exiftool_ is no longer vendored with this package, use _dist-exiftool_ ([d4fcf2b](https://github.com/Sobesednik/node-exiftool/commit/d4fcf2b))
+
+<a name="1.0.4"></a>
+# [1.0.4](https://github.com/Sobesednik/node-exiftool/compare/v1.0.3...v1.0.4) (2016-08-20)
+
+### Bug Fixes
+
+* Use the correct EOL character depending on OS ([2a84b73](https://github.com/Sobesednik/node-exiftool/commit/2a84b73))
+* Ensure exiftool quits properly on Windows by sending `--stay_open false` ([ec871e9](https://github.com/Sobesednik/node-exiftool/commit/ec871e9))
+
+<a name="1.0.3"></a>
+# [1.0.3](https://github.com/Sobesednik/node-exiftool/compare/v1.0.2...v1.0.3) (2016-08-07)
+
+### Features
+
+* Updated to _exiftool_ `10.25` ([59b5a18](https://github.com/Sobesednik/node-exiftool/commit/59b5a18))
+
+<a name="1.0.2"></a>
+# [1.0.2](https://github.com/Sobesednik/node-exiftool/compare/v1.0.1...v1.0.2) (2016-06-04)
+
+### Features
+
+* Include _exiftool_ distribution ([87ffd37](https://github.com/Sobesednik/node-exiftool/commit/87ffd37))
+
+# 1.0.0 (2016-05-15) and 1.0.1 (2016-05-16)
+
+Working Node.js module to run _exiftool_ and initial releases to npm
