@@ -1,3 +1,19 @@
+<a name="2.1.0"></a>
+# [2.1.0](https://github.com/Sobesednik/node-exiftool/compare/v2.0.3...v2.1.0) (2016-11-27)
+
+### Features
+
+* Write metadata! ([6477aec](https://github.com/Sobesednik/node-exiftool/commit/6477aec))
+
+### Code Refactoring
+
+* `eslint` config ([b32729c](https://github.com/Sobesednik/node-exiftool/commit/b32729c))
+* Don't publish test directory by specifying `files` property in _package.json_ ([9067100](https://github.com/Sobesednik/node-exiftool/commit/9067100))
+
+### Bug Fixes
+
+* Pass custom arguments with value (e.g., `ext dng`) ([4e66d0c](https://github.com/Sobesednik/node-exiftool/commit/4e66d0c)), closes [#1](https://github.com/Sobesednik/node-exiftool/issues/1)
+
 <a name="2.0.3"></a>
 # [2.0.3](https://github.com/Sobesednik/node-exiftool/compare/v2.0.2...v2.0.3) (2016-11-26)
 
