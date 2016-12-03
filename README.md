@@ -342,6 +342,51 @@ exiftool process exited
 Started exiftool process 95232
 ```
 
+## Benchmark
+
+To start the benchmark, execute `npm run bench`. It will scan all files
+in the `benchmark/photos` directory, and if none was found, will work on test
+fixtures. Here are some of our results:
+
+```
+> node benchmark/run
+
+/node-exiftool/benchmark/photos/IMG_3051.JPG: 168ms
+/node-exiftool/benchmark/photos/IMG_3052.JPG: 166ms
+/node-exiftool/benchmark/photos/IMG_3053.JPG: 168ms
+/node-exiftool/benchmark/photos/IMG_3054.JPG: 166ms
+/node-exiftool/benchmark/photos/IMG_3055.JPG: 165ms
+/node-exiftool/benchmark/photos/IMG_3056.JPG: 158ms
+/node-exiftool/benchmark/photos/IMG_3057.JPG: 158ms
+/node-exiftool/benchmark/photos/IMG_3058.JPG: 162ms
+/node-exiftool/benchmark/photos/IMG_3059.JPG: 158ms
+/node-exiftool/benchmark/photos/IMG_3060.JPG: 158ms
+/node-exiftool/benchmark/photos/IMG_3061.JPG: 157ms
+/node-exiftool/benchmark/photos/IMG_3051.JPG: 65ms
+/node-exiftool/benchmark/photos/IMG_3052.JPG: 20ms
+/node-exiftool/benchmark/photos/IMG_3053.JPG: 22ms
+/node-exiftool/benchmark/photos/IMG_3054.JPG: 23ms
+/node-exiftool/benchmark/photos/IMG_3055.JPG: 22ms
+/node-exiftool/benchmark/photos/IMG_3056.JPG: 22ms
+/node-exiftool/benchmark/photos/IMG_3057.JPG: 22ms
+/node-exiftool/benchmark/photos/IMG_3058.JPG: 22ms
+/node-exiftool/benchmark/photos/IMG_3059.JPG: 20ms
+/node-exiftool/benchmark/photos/IMG_3060.JPG: 21ms
+/node-exiftool/benchmark/photos/IMG_3061.JPG: 20ms
+
+Exiftool
+Read 11 files
+Total time: 1784ms
+Average time: 162.18ms
+
+Exiftool Open
+Read 11 files
+Total time: 378ms
+Average time: 34.36ms
+
+Exiftool Open was faster by 471%
+```
+
 ## Metadata
 
 Metadata is awesome and although it can increase the file size, it preserves copyright
