@@ -1,7 +1,7 @@
 'use strict'
 const EventEmitter = require('events')
 const lib = require('./lib')
-const BeginReadySnitch = require('./begin-ready-snitch')
+const beginReady = require('./begin-ready')
 
 const EXIFTOOL_PATH = 'exiftool'
 
@@ -14,7 +14,7 @@ class ExiftoolProcess extends EventEmitter {
 
     /**
      * Create an instance of ExoftoolProcess class.
-     * @param {string} [bin=vendor/Image-ExifTool/exiftool] - path to executable
+     * @param {string} [exiftool] - path to executable
      */
     constructor(bin) {
         super()
@@ -33,6 +33,8 @@ class ExiftoolProcess extends EventEmitter {
         }
         return lib.close(this._process)
             .then(() => {
+                this._stdoutResolveWs.end()
+                this._stderrResolveWs.end()
                 this._open = false
             })
     }
@@ -46,19 +48,28 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
         return lib.spawn(this._bin)
-            .then((process) => {
+            .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
-                this.emit(events.OPEN, process.pid)
-                this._process = process
+                this.emit(events.OPEN, exiftoolProcess.pid)
+                this._process = exiftoolProcess
 
-                process.on('exit', this._exitListener.bind(this))
+                exiftoolProcess.on('exit', this._exitListener.bind(this))
 
-                this._stdoutSnitch = new BeginReadySnitch(process.stdout)
-                this._stderrSnitch = new BeginReadySnitch(process.stderr)
+                // resolve write streams
+                this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stdout)
+                this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stderr)
+
+                // handle erros so that Node does not crash
+                this._stdoutResolveWs.on('error', console.error)
+                this._stderrResolveWs.on('error', console.error)
+
+                // debug
+                // exiftoolProcess.stdout.pipe(process.stdout)
+                // exiftoolProcess.stderr.pipe(process.stderr)
 
                 this._open = true
 
-                return process.pid
+                return exiftoolProcess.pid
             })
     }
 
@@ -85,7 +96,8 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Could not connect to the exiftool process'))
         }
 
-        return lib.executeCommand(this._process, this._stdoutSnitch, this._stderrSnitch, command, args, argsNoSplit)
+        return lib.executeCommand(this._process, this._stdoutResolveWs,
+            this._stderrResolveWs, command, args, argsNoSplit)
     }
 
     /**

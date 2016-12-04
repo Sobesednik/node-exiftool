@@ -66,36 +66,26 @@ function execute(process, command, commandNumber, args, noSplitArgs) {
     writeStdIn(process, `-execute${commandNumber}`)
 }
 
-function getCommandNumber() {
-    return Math.floor(Math.random() * 1000000)
+function genCommandNumber() {
+    return String(Math.floor(Math.random() * 1000000))
 }
 
-function createHandler(commandNumber, snitch, cb) {
-    const handler = (data) => {
-        if (data.commandNumber === commandNumber) {
-            snitch.removeListener('data', handler)
-            cb(data.data)
-        }
-    }
-    snitch.on('data', handler)
-}
+function executeCommand(process, stdoutRws, stderrRws, command, args, noSplitArgs) {
+    const commandNumber = genCommandNumber()
 
-function executeCommand(process, stdoutSnitch, stderrSnitch, command, args, noSplitArgs) {
-    const commandNumber = getCommandNumber()
-
-    const dataPromise = new Promise(resolve =>
-        createHandler(commandNumber, stdoutSnitch, resolve)
-    )
+    const dataPromise = new Promise(resolve => {
+        stdoutRws.addToResolveMap(commandNumber, resolve)
+    })
 
     const errPromise = new Promise(resolve =>
-        createHandler(commandNumber, stderrSnitch, resolve)
+        stderrRws.addToResolveMap(commandNumber, resolve)
     )
 
     execute(process, command, commandNumber, args, noSplitArgs)
 
     return Promise.all([
         dataPromise,
-        errPromise
+        errPromise,
     ])
         .then(res => ({
             data: res[0] ? JSON.parse(res[0]) : null,

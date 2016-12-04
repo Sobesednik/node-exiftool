@@ -122,6 +122,16 @@ const exiftoolTestSuite = {
                     assert(!ep.isOpen)
                 })
         },
+        'updates resolve write streams to be finished': () => {
+            const ep = startExiftool()
+            return ep
+                .open()
+                .then(ep.close.bind(ep))
+                .then(() => {
+                    assert(ep._stdoutResolveWs._writableState.finished)
+                    assert(ep._stderrResolveWs._writableState.finished)
+                })
+        },
         'completes remaining jobs': () => {
             const ep = startExiftool()
             return ep
@@ -141,11 +151,15 @@ const exiftoolTestSuite = {
                             assert(res.error === null)
                             res.data.forEach(assertJpegMetadata)
                         })
-                    const both = Promise.all([p, p2])
+                    const readPromises = Promise.all([p, p2])
 
                     return ep
                         .close()
-                        .then(() => both)
+                        .then(() => {
+                            assert(!Object.keys(ep._stdoutResolveWs._resolveMap).length)
+                            assert(!Object.keys(ep._stderrResolveWs._resolveMap).length)
+                        })
+                        .then(() => readPromises)
                 })
         },
         'emits EXIT event': () => {
@@ -349,8 +363,8 @@ const exiftoolTestSuite = {
                 )
                 .catch(() => {}),
         'removes temp file': () =>
-            unlinkTempFile(tempFile)
-    }
+            unlinkTempFile(tempFile),
+    },
 }
 
 module.exports = exiftoolTestSuite
