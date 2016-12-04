@@ -23,6 +23,10 @@ module.exports = {
         "semi": [
             "error",
             "never"
+        ],
+        "comma-dangle": [
+            "error",
+            "always-multiline"
         ]
     }
 };

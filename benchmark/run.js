@@ -51,7 +51,7 @@ function runExiftoolBenchmark(ds, files) {
     return lib.readStream(rs)
         .then((res) => {
             const output = {
-                results: res
+                results: res,
             }
             const resultsTime = lib.reduceResultsTime(output.results)
             output.results.time = resultsTime
