@@ -1,3 +1,20 @@
+<a name="2.1.1"></a>
+# [2.1.1](https://github.com/Sobesednik/node-exiftool/compare/v2.1.0...v2.1.1) (2016-12-25)
+
+### Features
+
+* Use streams to parse exiftool std streams instead of event listeners ([a6531d8](https://github.com/Sobesednik/node-exiftool/commit/a6531d8f8)) 
+
+### Code Refactoring
+
+* Update to zoroaster 0.2.0 with test results streaming ([9edf6ac](https://github.com/Sobesednik/node-exiftool/commit/9edf6ac))
+* Install _cross-env_ for testing on Windows ([a1d0441](https://github.com/Sobesednik/node-exiftool/commit/a1d0441))
+* comma-dangle: always-multiline eslint rule ([39afea2](https://github.com/Sobesednik/node-exiftool/commit/39afea2))
+
+### Repository
+
+* Add benchmark of _stay_open_ vs _single run_ ([6d61ec8](https://github.com/Sobesednik/node-exiftool/commit/6d61ec8))
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/Sobesednik/node-exiftool/compare/v2.0.3...v2.1.0) (2016-11-27)
 
