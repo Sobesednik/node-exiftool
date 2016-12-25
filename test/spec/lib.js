@@ -94,7 +94,7 @@ const libTestSuite = {
             res.forEach((arg, index) =>
                 assert(arg === expected[index])
             )
-        }
+        },
     },
     'execute': {
         'should write to process stdin': () => {
@@ -117,8 +117,8 @@ const libTestSuite = {
             records.forEach((arg, index) =>
                 assert(arg === expected[index])
             )
-        }
-    }
+        },
+    },
 }
 
 module.exports = libTestSuite
