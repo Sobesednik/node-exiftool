@@ -9,7 +9,8 @@
   "scripts": {
     "test": "cross-env ZOROASTER_TIMEOUT=10000 zoroaster test/spec",
     "test-watch": "zoroaster test/spec --watch",
-    "bench": "node benchmark/run"
+    "bench": "node benchmark/run",
+    "callback-example": "LOCAL=1 node examples/callback examples/28.jpg"
   },
   "repository": {
     "type": "git",
