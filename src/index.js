@@ -1,4 +1,5 @@
 'use strict'
+
 const EventEmitter = require('events')
 const lib = require('./lib')
 const beginReady = require('./begin-ready')

@@ -1,9 +1,13 @@
+# Current master (not released)
+
+- update to `zoroaster` 0.4.1 and use `context` in tests
+
 <a name="2.1.1"></a>
 # [2.1.1](https://github.com/Sobesednik/node-exiftool/compare/v2.1.0...v2.1.1) (2016-12-25)
 
 ### Features
 
-* Use streams to parse exiftool std streams instead of event listeners ([a6531d8](https://github.com/Sobesednik/node-exiftool/commit/a6531d8f8)) 
+* Use streams to parse exiftool std streams instead of event listeners ([a6531d8](https://github.com/Sobesednik/node-exiftool/commit/a6531d8f8))
 
 ### Code Refactoring
 

@@ -1,15 +1,14 @@
-'use strict'
-
 const path = require('path')
 const os = require('os')
 const assert = require('assert')
 const fs = require('fs')
 const child_process = require('child_process')
-const exiftoolBin = require('dist-exiftool')
-const ChildProcess = child_process.ChildProcess
-const EOL = os.EOL
 const exiftool = require('../../src/index')
 
+const context = require('../context/ExiftoolContext')
+
+const ChildProcess = child_process.ChildProcess
+const EOL = os.EOL
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
 const replaceSlashes = str => str.replace(/\\/g, '/')
@@ -33,213 +32,189 @@ const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
 )
 
 function assertJpegMetadata(file) {
-    assert(file.FileType === 'JPEG')
-    assert(file.MIMEType === 'image/jpeg')
-    assert(file.CreatorWorkURL === 'https://sobesednik.media')
-    assert(file.Creator === 'Anton')
-    assert(file.Scene === '011200')
-}
+    const mask = {
+        FileType: 'JPEG',
+        MIMEType: 'image/jpeg',
+        CreatorWorkURL: 'https://sobesednik.media',
+        Creator: 'Anton',
+        Scene: '011200',
+    }
+    // shallow deep equal
+    Object.keys(mask)
+        .forEach((key) => {
+            assert.equal(file[key], mask[key])
+        })
 
-const exiftoolProcesses = []
-const startExiftool = () => {
-    const ep = new exiftool.ExiftoolProcess(exiftoolBin)
-    exiftoolProcesses.push(ep)
-    return ep
 }
 
 const exiftoolTestSuite = {
-    'class': {
-        'creates new ExiftoolProcess object with default bin': () => {
+    context,
+    class: {
+        'creates new ExiftoolProcess instance with default bin': (ctx) => {
             const ep = new exiftool.ExiftoolProcess()
             assert(ep instanceof exiftool.ExiftoolProcess)
-            assert(!ep.isOpen)
-            assert(ep._bin === exiftool.EXIFTOOL_PATH)
+            assert.equal(ep._bin, exiftool.EXIFTOOL_PATH)
+            assert.equal(ep._bin, ctx.defaultBin)
         },
-        'creates new ExiftoolProcess object with specific bin': () => {
+        'instance\'s isOpen getter returns false': (ctx) => {
+            ctx.create()
+            assert(!ctx.ep.isOpen)
+        },
+        'creates new ExiftoolProcess object with specific bin': (ctx) => {
             const bin = 'notexiftool'
-            const ep = new exiftool.ExiftoolProcess(bin)
-            assert(ep instanceof exiftool.ExiftoolProcess)
-            assert(!ep.isOpen)
-            assert(ep._bin === bin)
+            ctx.create(bin)
+            assert.equal(ctx.ep._bin, bin)
         },
     },
-    'open': {
-        'opens exiftool': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
+    open: {
+        'opens exiftool': (ctx) => {
+            return ctx.createOpen()
                 .then((pid) => {
-                    assert(ep._process instanceof ChildProcess)
-                    assert(ep._process.stdout.readable)
-                    assert(ep._process.stderr.readable)
-                    assert(ep._process.stdin.writable)
-                    assert(ep.isOpen)
-                    assert(typeof pid === 'number')
-                    assert(pid === ep._process.pid)
+                    assert(ctx.ep._process instanceof ChildProcess)
+                    assert(ctx.ep._process.stdout.readable)
+                    assert(ctx.ep._process.stderr.readable)
+                    assert(ctx.ep._process.stdin.writable)
+                    assert(ctx.ep.isOpen)
+                    assert.equal(typeof pid, 'number')
+                    assert.equal(pid, ctx.ep._process.pid)
                 })
         },
-        'returns rejected promise when exiftool executable not found': () => {
-            const ep = new exiftool.ExiftoolProcess('notexiftool')
-            return ep
-                .open()
+        'returns rejected promise when exiftool executable not found': (ctx) => {
+            return ctx.createOpen('notexiftool')
                 .then(() => {
                     throw new Error('open should have resulted in error')
+                }, (err) => {
+                    assert.equal(err.message, 'spawn notexiftool ENOENT')
                 })
-                .catch(() => {})
         },
-        'emits OPEN event with PID': () => {
-            const ep = startExiftool()
+        'emits OPEN event with PID': (ctx) => {
+            ctx.create()
             const eventPromise = new Promise(resolve =>
-                ep.on(exiftool.events.OPEN, resolve)
+                ctx.ep.on(exiftool.events.OPEN, resolve)
             )
-            return ep
-                .open()
+            return ctx.open()
                 .then(() => eventPromise)
-                .then(pid => assert(pid === ep._process.pid))
+                .then(pid => assert.equal(pid, ctx.ep._process.pid))
         },
-        'returns rejected promise when process is open already': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(ep.open.bind(ep))
+        'returns rejected promise when process is open already': (ctx) => {
+            return ctx.createOpen()
+                .then(() => ctx.open())
                 .then(() => {
                     throw new Error('second open should have resulted in error')
+                }, (err) => {
+                    assert.equal(err.message, 'Exiftool process is already open')
                 })
-                .catch(() => {})
         },
     },
-    'close': {
-        'closes the process': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(ep.close.bind(ep))
+    close: {
+        'closes the process': (ctx) => {
+            return ctx.createOpen()
+                .then(() => ctx.close())
                 .then(() => {
-                    assert(ep._process instanceof ChildProcess)
-                    assert(!ep._process.stdout.readable)
-                    assert(!ep._process.stderr.readable)
-                    assert(!ep._process.stdin.writable)
-                    assert(!ep.isOpen)
+                    assert(ctx.ep._process instanceof ChildProcess)
+                    assert(!ctx.ep._process.stdout.readable)
+                    assert(!ctx.ep._process.stderr.readable)
+                    assert(!ctx.ep._process.stdin.writable)
+                    assert(!ctx.ep.isOpen)
                 })
         },
-        'updates resolve write streams to be finished': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(ep.close.bind(ep))
+        'updates resolve write streams to be finished': (ctx) => {
+            return ctx.createOpen()
+                .then(() => ctx.close())
                 .then(() => {
-                    assert(ep._stdoutResolveWs._writableState.finished)
-                    assert(ep._stderrResolveWs._writableState.finished)
+                    assert(ctx.ep._stdoutResolveWs._writableState.finished)
+                    assert(ctx.ep._stderrResolveWs._writableState.finished)
                 })
         },
-        'completes remaining jobs': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
+        'completes remaining jobs': (ctx) => {
+            return ctx.createOpen()
                 .then(() => {
-                    const p = ep
+                    const p = ctx.ep
                         .readMetadata(jpegFile)
                         .then((res) => {
                             assert(Array.isArray(res.data))
-                            assert(res.error === null)
+                            assert.equal(res.error, null)
                             res.data.forEach(assertJpegMetadata)
                         })
-                    const p2 = ep
+                    const p2 = ctx.ep
                         .readMetadata(jpegFile2)
                         .then((res) => {
                             assert(Array.isArray(res.data))
-                            assert(res.error === null)
+                            assert.equal(res.error, null)
                             res.data.forEach(assertJpegMetadata)
                         })
                     const readPromises = Promise.all([p, p2])
 
-                    return ep
-                        .close()
+                    return ctx.close()
                         .then(() => {
-                            assert(!Object.keys(ep._stdoutResolveWs._resolveMap).length)
-                            assert(!Object.keys(ep._stderrResolveWs._resolveMap).length)
+                            assert(!Object.keys(ctx.ep._stdoutResolveWs._resolveMap).length)
+                            assert(!Object.keys(ctx.ep._stderrResolveWs._resolveMap).length)
                         })
                         .then(() => readPromises)
                 })
         },
-        'emits EXIT event': () => {
-            const ep = startExiftool()
+        'emits EXIT event': (ctx) => {
+            ctx.create()
             const eventPromise = new Promise(resolve =>
-                ep.on(exiftool.events.EXIT, resolve)
+                ctx.ep.on(exiftool.events.EXIT, resolve)
             )
-            return ep
-                .open()
-                .then(ep.close.bind(ep))
+            return ctx.open()
+                .then(() => ctx.close())
                 .then(() => eventPromise)
         },
-        'sets open to false': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(ep.close.bind(ep))
-                .then(() => assert(!ep.isOpen))
+        'sets open to false': (ctx) => {
+            return ctx.createOpen()
+                .then(() => ctx.close())
+                .then(() => assert(!ctx.ep.isOpen))
         },
-        'returns rejected promise when process not open': () => {
-            const ep = startExiftool()
-            return ep
+        'returns rejected promise when process not open': (ctx) => {
+            return ctx.create()
                 .close()
                 .then(() => {
                     throw new Error('close should have resulted in error')
+                }, (err) => {
+                    assert.equal(err.message, 'Exiftool process is not open')
                 })
-                .catch(err => assert(err.message === 'Exiftool process is not open'))
         },
     },
-    'readMetadata': {
-        'returns rejected promise when trying to execute when not open': () => {
-            const ep = startExiftool()
-            return ep
+    readMetadata: {
+        'returns rejected promise when trying to execute when not open': (ctx) => {
+            return ctx.create()
                 .readMetadata(jpegFile)
                 .then(() => {
                     throw new Error('readMetadata should have resulted in error')
                 })
-                .catch(err => assert(err.message === 'exiftool is not open'))
+                .catch(err => assert.equal(err.message, 'exiftool is not open'))
         },
-        'reads metadata of files in a directory': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.readMetadata(folder))
+        'reads metadata of files in a directory': (ctx) => {
+            return ctx.initAndReadMetadata(folder)
                 .then((res) => {
                     assert(Array.isArray(res.data))
-                    assert(res.data.length === 5)
+                    assert.equal(res.data.length, 5)
                     res.data.forEach(assertJpegMetadata)
-                    assert(res.error === `1 directories scanned${EOL}    5 image files read`)
+                    assert.equal(res.error, `1 directories scanned${EOL}    5 image files read`)
                 })
         },
-        'returns null data for empty directory and info error': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.readMetadata(emptyFolder))
+        'returns null data for empty directory and info error': (ctx) => {
+            return ctx.initAndReadMetadata(emptyFolder)
                 .then((res) => {
-                    assert(res.data === null)
-                    assert(res.error === `1 directories scanned${EOL}    0 image files read`)
+                    assert.equal(res.data, null)
+                    assert.equal(res.error, `1 directories scanned${EOL}    0 image files read`)
                 })
         },
-        'allows to specify arguments': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.readMetadata(jpegFile, ['Orientation', 'n']))
+        'allows to specify arguments': (ctx) => {
+            return ctx.initAndReadMetadata(jpegFile, ['Orientation', 'n'])
                 .then((res) => {
-                    assert(res.error === null)
+                    assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
-                    assert(res.data[0].SourceFile === 'test/fixtures/CANON/IMG_9858.JPG')
-                    assert(res.data[0].Orientation === 6)
+                    assert.equal(res.data[0].SourceFile, 'test/fixtures/CANON/IMG_9858.JPG')
+                    assert.equal(res.data[0].Orientation, 6)
                 })
         },
-        'reads metadata of a file': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.readMetadata(jpegFile))
+        'reads metadata of a file': (ctx) => {
+            return ctx.initAndReadMetadata(jpegFile)
                 .then((res) => {
-                    assert(res.error === null)
+                    assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
                     const expected = {
                         SourceFile: 'test/fixtures/CANON/IMG_9858.JPG',
@@ -271,60 +246,60 @@ const exiftoolTestSuite = {
                     Object
                         .keys(expected)
                         .forEach(key =>
-                            assert(res.data[0][key] === expected[key])
+                            assert.equal(res.data[0][key], expected[key])
                         )
                 })
         },
-        'returns promise with null data and error when file not found': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.readMetadata(fileDoesNotExist))
+        'returns promise with null data and error when file not found': (ctx) => {
+            return ctx.initAndReadMetadata(fileDoesNotExist)
                 .then((res) => {
-                    assert(res.data === null)
-                    assert(res.error === `File not found: ${fileDoesNotExist}`)
+                    assert.equal(res.data, null)
+                    assert.equal(res.error, `File not found: ${fileDoesNotExist}`)
                 })
         },
-        'works with simultaneous requests': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
+        'works with simultaneous requests': (ctx) => {
+            return ctx.createOpen()
                 .then(() => Promise.all([
-                    ep.readMetadata(fileDoesNotExist),
-                    ep.readMetadata(fileDoesNotExist2),
-                    ep.readMetadata(jpegFile),
-                    ep.readMetadata(jpegFile2),
+                    ctx.ep.readMetadata(fileDoesNotExist),
+                    ctx.ep.readMetadata(fileDoesNotExist2),
+                    ctx.ep.readMetadata(jpegFile),
+                    ctx.ep.readMetadata(jpegFile2),
                 ]))
                 .then((res) => {
-                    assert(res[0].data === null)
-                    assert(res[0].error === `File not found: ${fileDoesNotExist}`)
+                    assert.equal(res[0].data, null)
+                    assert.equal(res[0].error, `File not found: ${fileDoesNotExist}`)
 
-                    assert(res[1].data === null)
-                    assert(res[1].error === `File not found: ${fileDoesNotExist2}`)
+                    assert.equal(res[1].data, null)
+                    assert.equal(res[1].error, `File not found: ${fileDoesNotExist2}`)
 
                     assert(Array.isArray(res[2].data))
-                    assert(res[2].error === null)
+                    assert.equal(res[2].error, null)
                     res[2].data.forEach(assertJpegMetadata)
 
                     assert(Array.isArray(res[3].data))
-                    assert(res[3].error === null)
+                    assert.equal(res[3].error, null)
                     res[3].data.forEach(assertJpegMetadata)
                 })
         },
     },
-    'writeMetadata': {
-        'should return rejected promise when data is not an object': () => {
-            const ep = startExiftool()
-            return ep
-                .open()
-                .then(() => ep.writeMetadata('file_path'))
+    writeMetadata: {
+        'returns rejected promise when trying to execute when not open': (ctx) => {
+            return ctx.create()
+                .writeMetadata(tempFile, { comment: 'test-comment' }, ['overwrite_original'])
                 .then(() => {
                     throw new Error('writeMetadata should have resulted in error')
                 })
-                .catch(err => assert(err.message === 'Data argument is not an object'))
+                .catch(err => assert.equal(err.message, 'exiftool is not open'))
         },
-        'should write metadata': () => {
-            const ep = startExiftool()
+        'should return rejected promise when data is not an object': (ctx) => {
+            return ctx.initAndWriteMetadata('file_path')
+                .then(() => {
+                    throw new Error('writeMetadata should have resulted in error')
+                }, (err) => {
+                    assert.equal(err.message, 'Data argument is not an object')
+                })
+        },
+        'should write metadata': (ctx) => {
             const keywords = [ 'keywordA', 'keywordB' ]
             const comment = 'hello world'
             const data = {
@@ -332,32 +307,30 @@ const exiftoolTestSuite = {
                 comment, // has to come after all in order not to be removed
                 'Keywords+': keywords,
             }
-            return ep
-                .open()
-                .then(() => ep.writeMetadata(tempFile, data, ['overwrite_original']))
+            return ctx.initAndWriteMetadata(tempFile, data, ['overwrite_original'])
                 .then((res) => {
-                    assert(res.data === null)
-                    assert(res.error === '1 image files updated')
+                    assert.equal(res.data, null)
+                    assert.equal(res.error, '1 image files updated')
                 })
-                .then(() => ep.readMetadata(tempFile))
+                .then(() => ctx.ep.readMetadata(tempFile))
                 .then((res) => {
                     assert(Array.isArray(res.data))
-                    assert(res.error === null)
+                    assert.equal(res.error, null)
                     const meta = res.data[0]
-                    assert(meta.Keywords.length === keywords.length)
+                    assert.equal(meta.Keywords.length, keywords.length)
                     meta.Keywords.forEach((keyword, index) => {
-                        assert(keyword === keywords[index])
+                        assert.equal(keyword, keywords[index])
                     })
-                    assert(meta.Comment === comment)
-                    assert(meta.Scene === undefined) // should be removed with -all=
+                    assert.equal(meta.Comment, comment)
+                    assert.equal(meta.Scene, undefined) // should be removed with -all=
                 })
         },
     },
-    '_after': {
-        'closes exiftool processes': () =>
+    _after: {
+        'closes exiftool processes': (ctx) =>
             Promise
                 .all(
-                    exiftoolProcesses.map(
+                    ctx.exiftoolProcesses.map(
                         ep => ep.close()
                     )
                 )
