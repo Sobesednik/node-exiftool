@@ -105,12 +105,12 @@ const brtsTestSuite = {
                 rs.pipe(rts).pipe(ws)
             })
                 .then((res) => {
-                    assert(res.length === 1)
+                    assert.equal(res.length, 1)
                     const match = res[0]
-                    assert(match[0] === '{12345}')
-                    assert(match[1] === '12345')
-                    assert(match.index === 0)
-                    assert(match.input === input)
+                    assert.equal(match[0], '{12345}')
+                    assert.equal(match[1], '12345')
+                    assert.equal(match.index, 0)
+                    assert.equal(match.input, input)
                 })
         },
         'should transform data with global flag': () => {
@@ -135,17 +135,17 @@ const brtsTestSuite = {
                 rs.pipe(rts).pipe(ws)
             })
                 .then((res) => {
-                    assert(res.length === 2)
+                    assert.equal(res.length, 2)
                     const match = res[0]
                     const match2 = res[1]
-                    assert(match[0] === '{12345}')
-                    assert(match[1] === '12345')
-                    assert(match.index === 0)
-                    assert(match.input === input)
-                    assert(match2[0] === '{67890}')
-                    assert(match2[1] === '67890')
-                    assert(match2.index === 7)
-                    assert(match2.input === input)
+                    assert.equal(match[0], '{12345}')
+                    assert.equal(match[1], '12345')
+                    assert.equal(match.index, 0)
+                    assert.equal(match.input, input)
+                    assert.equal(match2[0], '{67890}')
+                    assert.equal(match2[1], '67890')
+                    assert.equal(match2.index, 7)
+                    assert.equal(match2.input, input)
                 })
         },
     },
@@ -179,30 +179,30 @@ const brtsTestSuite = {
                 rs.pipe(brts).pipe(ws)
             })
                 .then((res) => {
-                    assert(res.length === 2)
+                    assert.equal(res.length, 2)
                     const output = res[0]
                     const output2 = res[1]
-                    assert(output.cn === commandNumber)
-                    assert(output.d === data)
-                    assert(output2.cn === commandNumber2)
-                    assert(output2.d === data2)
+                    assert.equal(output.cn, commandNumber)
+                    assert.equal(output.d, data)
+                    assert.equal(output2.cn, commandNumber2)
+                    assert.equal(output2.d, data2)
                 })
         },
     },
     createResolverWriteStream: {
         'should have _resolveMap property': () => {
             const rws = createResolverWriteStream()
-            assert(typeof rws._resolveMap === 'object')
+            assert.equal(typeof rws._resolveMap, 'object')
         },
         'should have addToResolveMap function': () => {
             const rws = createResolverWriteStream()
-            assert(typeof rws.addToResolveMap === 'function')
+            assert.equal(typeof rws.addToResolveMap, 'function')
         },
         'should add resolve function to the map': () => {
             const rws = createResolverWriteStream()
             const handler = () => {}
             rws.addToResolveMap(commandNumber, handler)
-            assert(rws._resolveMap[commandNumber] === handler)
+            assert.strictEqual(rws._resolveMap[commandNumber], handler)
         },
         'should throw an error when resolve is not a function': () => {
             const rws = createResolverWriteStream()
@@ -250,9 +250,9 @@ const brtsTestSuite = {
 
             return new Promise(resolve => rws.on('finish', resolve))
                 .then(() => {
-                    assert(results.length === 2)
-                    assert(results[0] === data)
-                    assert(results[1] === data2)
+                    assert.equal(results.length, 2)
+                    assert.equal(results[0], data)
+                    assert.equal(results[1], data2)
                     assert(!Object.keys(rws._resolveMap).length)
                 })
         },
@@ -278,9 +278,9 @@ const brtsTestSuite = {
 
             return new Promise(resolve => rws.on('error', resolve))
                 .then((err) => {
-                    assert(err.message === `Command with index ${commandNumber2} not found`)
-                    assert(results.length === 1)
-                    assert(results[0] === data)
+                    assert.equal(err.message, `Command with index ${commandNumber2} not found`)
+                    assert.equal(results.length, 1)
+                    assert.equal(results[0], data)
                 })
         },
     },
@@ -297,9 +297,9 @@ const brtsTestSuite = {
             rws.addToResolveMap(commandNumber2, (data) => results.push(data))
             return new Promise(resolve => rws.on('finish', resolve))
                 .then(() => {
-                    assert(results.length === 2)
-                    assert(results[0] === data)
-                    assert(results[1] === data2)
+                    assert.equal(results.length, 2)
+                    assert.equal(results[0], data)
+                    assert.equal(results[1], data2)
                 })
         },
     },
