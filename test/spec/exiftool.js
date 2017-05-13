@@ -12,7 +12,7 @@ function assertJpegMetadata(file) {
         FileType: 'JPEG',
         MIMEType: 'image/jpeg',
         CreatorWorkURL: 'https://sobesednik.media',
-        Creator: 'Anton',
+        Creator: 'Photographer Name',
         Scene: '011200',
     }
     // shallow deep equal
@@ -206,10 +206,10 @@ const exiftoolTestSuite = {
                         YResolution: 72,
                         ResolutionUnit: 'inches',
                         YCbCrPositioning: 'Centered',
-                        XMPToolkit: 'Image::ExifTool 10.11',
+                        XMPToolkit: 'Image::ExifTool 10.40',
                         CreatorWorkURL: 'https://sobesednik.media',
                         Scene: '011200',
-                        Creator: 'Anton',
+                        Creator: 'Photographer Name',
                         ImageWidth: 500,
                         ImageHeight: 334,
                         EncodingProcess: 'Baseline DCT, Huffman coding',

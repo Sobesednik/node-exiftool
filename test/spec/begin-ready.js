@@ -47,7 +47,7 @@ const data = `
   "XMPToolkit": "Image::ExifTool 10.11",
   "CreatorWorkURL": "https://sobesednik.media",
   "Scene": "011200",
-  "Creator": "Anton",
+  "Creator": "Photographer Name",
   "ImageWidth": 500,
   "ImageHeight": 333,
   "EncodingProcess": "Baseline DCT, Huffman coding",

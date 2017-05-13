@@ -3,7 +3,7 @@
  * This example shows how to write metadata, with unicode characters. It will create a new file in
  * the example directory.
  *
- * ./examples/write_metadata, or
+ * ./examples/write_metadata/index.js, or
  * npm run write-example
  */
 
@@ -53,4 +53,3 @@ function run() {
 
 run()
     .then(results => console.log(JSON.stringify(results, null, 2)))
-
