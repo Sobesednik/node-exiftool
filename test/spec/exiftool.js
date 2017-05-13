@@ -1,35 +1,11 @@
-const path = require('path')
 const os = require('os')
 const assert = require('assert')
-const fs = require('fs')
 const child_process = require('child_process')
 const exiftool = require('../../src/index')
-
 const context = require('../context/ExiftoolContext')
 
 const ChildProcess = child_process.ChildProcess
 const EOL = os.EOL
-// exiftool will print "File not found: test/fixtures/no_such_file.jpg"
-// with forward slashes independent of platform
-const replaceSlashes = str => str.replace(/\\/g, '/')
-
-const fixturesDir = 'fixtures'
-const testDir = 'test'
-const fileDoesNotExist = replaceSlashes(path.join(testDir, fixturesDir, 'no_such_file.jpg'))
-const fileDoesNotExist2 = replaceSlashes(path.join(testDir, fixturesDir, 'no_such_file2.jpg'))
-const jpegFile = path.join(testDir, fixturesDir, 'CANON', 'IMG_9858.JPG')
-const jpegFile2 = path.join(testDir, fixturesDir, 'CANON', 'IMG_9859.JPG')
-const folder = path.join(testDir, fixturesDir, 'CANON')
-const emptyFolder = path.join(testDir, fixturesDir, 'empty')
-
-// create temp file for writing metadata
-const tempFile = path.join(os.tmpdir(), `node-exiftool_test_${Math.floor(Math.random() * 100000)}.jpg`)
-fs.writeFileSync(tempFile, fs.readFileSync(jpegFile))
-// console.log(tempFile)
-
-const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
-    fs.unlink(tempFile, err => (err ? reject(err) : resolve()))
-)
 
 function assertJpegMetadata(file) {
     const mask = {
@@ -130,14 +106,14 @@ const exiftoolTestSuite = {
             return ctx.createOpen()
                 .then(() => {
                     const p = ctx.ep
-                        .readMetadata(jpegFile)
+                        .readMetadata(ctx.jpegFile)
                         .then((res) => {
                             assert(Array.isArray(res.data))
                             assert.equal(res.error, null)
                             res.data.forEach(assertJpegMetadata)
                         })
                     const p2 = ctx.ep
-                        .readMetadata(jpegFile2)
+                        .readMetadata(ctx.jpegFile2)
                         .then((res) => {
                             assert(Array.isArray(res.data))
                             assert.equal(res.error, null)
@@ -180,14 +156,14 @@ const exiftoolTestSuite = {
     readMetadata: {
         'returns rejected promise when trying to execute when not open': (ctx) => {
             return ctx.create()
-                .readMetadata(jpegFile)
+                .readMetadata(ctx.jpegFile)
                 .then(() => {
                     throw new Error('readMetadata should have resulted in error')
                 })
                 .catch(err => assert.equal(err.message, 'exiftool is not open'))
         },
         'reads metadata of files in a directory': (ctx) => {
-            return ctx.initAndReadMetadata(folder)
+            return ctx.initAndReadMetadata(ctx.folder)
                 .then((res) => {
                     assert(Array.isArray(res.data))
                     assert.equal(res.data.length, 5)
@@ -196,14 +172,14 @@ const exiftoolTestSuite = {
                 })
         },
         'returns null data for empty directory and info error': (ctx) => {
-            return ctx.initAndReadMetadata(emptyFolder)
+            return ctx.initAndReadMetadata(ctx.emptyFolder)
                 .then((res) => {
                     assert.equal(res.data, null)
                     assert.equal(res.error, `1 directories scanned${EOL}    0 image files read`)
                 })
         },
         'allows to specify arguments': (ctx) => {
-            return ctx.initAndReadMetadata(jpegFile, ['Orientation', 'n'])
+            return ctx.initAndReadMetadata(ctx.jpegFile, ['Orientation', 'n'])
                 .then((res) => {
                     assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
@@ -212,7 +188,7 @@ const exiftoolTestSuite = {
                 })
         },
         'reads metadata of a file': (ctx) => {
-            return ctx.initAndReadMetadata(jpegFile)
+            return ctx.initAndReadMetadata(ctx.jpegFile)
                 .then((res) => {
                     assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
@@ -251,26 +227,26 @@ const exiftoolTestSuite = {
                 })
         },
         'returns promise with null data and error when file not found': (ctx) => {
-            return ctx.initAndReadMetadata(fileDoesNotExist)
+            return ctx.initAndReadMetadata(ctx.fileDoesNotExist)
                 .then((res) => {
                     assert.equal(res.data, null)
-                    assert.equal(res.error, `File not found: ${fileDoesNotExist}`)
+                    assert.equal(res.error, `File not found: ${ctx.fileDoesNotExist}`)
                 })
         },
         'works with simultaneous requests': (ctx) => {
             return ctx.createOpen()
                 .then(() => Promise.all([
-                    ctx.ep.readMetadata(fileDoesNotExist),
-                    ctx.ep.readMetadata(fileDoesNotExist2),
-                    ctx.ep.readMetadata(jpegFile),
-                    ctx.ep.readMetadata(jpegFile2),
+                    ctx.ep.readMetadata(ctx.fileDoesNotExist),
+                    ctx.ep.readMetadata(ctx.fileDoesNotExist2),
+                    ctx.ep.readMetadata(ctx.jpegFile),
+                    ctx.ep.readMetadata(ctx.jpegFile2),
                 ]))
                 .then((res) => {
                     assert.equal(res[0].data, null)
-                    assert.equal(res[0].error, `File not found: ${fileDoesNotExist}`)
+                    assert.equal(res[0].error, `File not found: ${ctx.fileDoesNotExist}`)
 
                     assert.equal(res[1].data, null)
-                    assert.equal(res[1].error, `File not found: ${fileDoesNotExist2}`)
+                    assert.equal(res[1].error, `File not found: ${ctx.fileDoesNotExist2}`)
 
                     assert(Array.isArray(res[2].data))
                     assert.equal(res[2].error, null)
@@ -285,7 +261,7 @@ const exiftoolTestSuite = {
     writeMetadata: {
         'returns rejected promise when trying to execute when not open': (ctx) => {
             return ctx.create()
-                .writeMetadata(tempFile, { comment: 'test-comment' }, ['overwrite_original'])
+                .writeMetadata('/temp-file', { comment: 'test-comment' }, ['overwrite_original'])
                 .then(() => {
                     throw new Error('writeMetadata should have resulted in error')
                 })
@@ -307,12 +283,13 @@ const exiftoolTestSuite = {
                 comment, // has to come after all in order not to be removed
                 'Keywords+': keywords,
             }
-            return ctx.initAndWriteMetadata(tempFile, data, ['overwrite_original'])
+            return ctx.createTempFile()
+                .then(() => ctx.initAndWriteMetadata(ctx.tempFile, data, ['overwrite_original']))
                 .then((res) => {
                     assert.equal(res.data, null)
                     assert.equal(res.error, '1 image files updated')
                 })
-                .then(() => ctx.ep.readMetadata(tempFile))
+                .then(() => ctx.ep.readMetadata(ctx.tempFile))
                 .then((res) => {
                     assert(Array.isArray(res.data))
                     assert.equal(res.error, null)
@@ -325,18 +302,6 @@ const exiftoolTestSuite = {
                     assert.equal(meta.Scene, undefined) // should be removed with -all=
                 })
         },
-    },
-    _after: {
-        'closes exiftool processes': (ctx) =>
-            Promise
-                .all(
-                    ctx.exiftoolProcesses.map(
-                        ep => ep.close()
-                    )
-                )
-                .catch(() => {}),
-        'removes temp file': () =>
-            unlinkTempFile(tempFile),
     },
 }
 

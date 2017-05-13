@@ -109,10 +109,26 @@ const libTestSuite = {
             const args = [ 'Creator', 'ext dng', 'o  metadata.txt', false, NaN ]
             const noSplitArgs = [ 'comment=hello world' ]
             lib.execute(process, command, commandNumber, args, noSplitArgs)
-            const expected = [ '-Creator', EOL, '-ext', EOL, 'dng', EOL, '-o', EOL, 'metadata.txt',
-                EOL, '-comment=hello world', EOL, '-json', EOL, '-s', EOL, 'file.jpg', EOL,
-                '-echo1', EOL, '{begin1}', EOL, '-echo2', EOL, '{begin1}', EOL, '-echo4', EOL,
-                '{ready1}', EOL, '-execute1', EOL ]
+            const expected = [
+                '-Creator',
+                '-ext',
+                'dng',
+                '-o',
+                'metadata.txt',
+                '-comment=hello world',
+                '-json',
+                '-s',
+                'file.jpg',
+                '-echo1',
+                '{begin1}',
+                '-echo2',
+                '{begin1}',
+                '-echo4',
+                '{ready1}',
+                '-execute1',
+            ].reduce((acc, arg) => {
+                return [].concat(acc, [arg, EOL])
+            }, [])
             assert.equal(records.length, expected.length)
             records.forEach((arg, index) =>
                 assert.equal(arg, expected[index])
