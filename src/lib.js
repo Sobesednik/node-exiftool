@@ -1,38 +1,37 @@
 const cp = require('child_process')
 const EOL = require('os').EOL
 
-function writeStdIn(process, data) {
+function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
-    process.stdin.write(data)
-    process.stdin.write(EOL)
+    proc.stdin.write(data, encoding)
+    proc.stdin.write(EOL, encoding)
 }
 
-function close(process) {
+function close(proc) {
     return new Promise((resolve) => {
-        process.on('close', resolve)
-        writeStdIn(process, '-stay_open')
-        writeStdIn(process, 'false')
+        proc.on('close', resolve)
+        writeStdIn(proc, '-stay_open')
+        writeStdIn(proc, 'false')
     })
 }
 
+function isString(s) {
+    return (typeof s).toLowerCase() === 'string'
+}
+
+/**
+ * Get arguments. Split by new line to write to exiftool
+ */
 function getArgs(args, noSplit) {
-    const res = []
-    if (Array.isArray(args)) {
-        args
-            .forEach(arg => {
-                if (['string', 'String'].indexOf(typeof arg) !== -1) {
-                    const prefixedArg = `-${arg}`
-                    if (noSplit) {
-                        res.push(prefixedArg)
-                    } else {
-                        prefixedArg
-                            .split(/\s+/)
-                            .forEach(a => res.push(a))
-                    }
-                }
-            })
+    if(!(Array.isArray(args) && args.length)) {
+        return []
     }
-    return res
+    return args
+        .filter(isString)
+        .map(arg => `-${arg}`)
+        .reduce((acc, arg) =>
+            [].concat(acc, noSplit ? [arg] : arg.split(/\s+/))
+        , [])
 }
 
 /**
@@ -40,48 +39,54 @@ function getArgs(args, noSplit) {
  * @param {ChildProcess} process - exiftool process executed with -stay_open True -@ -
  * @param {string} command - which command to execute
  * @param {string} commandNumber - text which will be echoed before and after results
- * @param {Array} args - any additional arguments
+ * @param {string[]} args - any additional arguments
+ * @param {string[]} noSplitArgs - arguments which should not be broken up like args
+ * @param {string} encoding - which encoding to write in. default no encoding
  */
-function execute(process, command, commandNumber, args, noSplitArgs) {
+function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
     const extendedArgs = getArgs(args)
     const extendedArgsNoSplit = getArgs(noSplitArgs, true)
 
-    command = command !== undefined ? command : ''
+    command = command !== undefined ? command : '';
 
-    // write user arguments
-    extendedArgs
-        .forEach(writeStdIn.bind(null, process))
-    extendedArgsNoSplit
-        .forEach(writeStdIn.bind(null, process))
-
-    writeStdIn(process, '-json')
-    writeStdIn(process, '-s')
-    writeStdIn(process, command)
-    writeStdIn(process, '-echo1')
-    writeStdIn(process, `{begin${commandNumber}}`)
-    writeStdIn(process, '-echo2')
-    writeStdIn(process, `{begin${commandNumber}}`)
-    writeStdIn(process, '-echo4')
-    writeStdIn(process, `{ready${commandNumber}}`)
-    writeStdIn(process, `-execute${commandNumber}`)
+    [].concat(
+        extendedArgsNoSplit,
+        extendedArgs,
+        ['-json', '-s'],
+        [
+            command,
+            '-echo1',
+            `{begin${commandNumber}}`,
+            '-echo2',
+            `{begin${commandNumber}}`,
+            '-echo4',
+            `{ready${commandNumber}}`,
+            `-execute${commandNumber}`,
+        ]
+    )
+        .forEach(arg => writeStdIn(proc, arg, encoding))
 }
 
 function genCommandNumber() {
     return String(Math.floor(Math.random() * 1000000))
 }
 
-function executeCommand(process, stdoutRws, stderrRws, command, args, noSplitArgs) {
+function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, encoding) {
     const commandNumber = genCommandNumber()
+
+    if (proc === process) { // debugging
+        execute(proc, command, commandNumber, args, noSplitArgs, encoding)
+        return Promise.resolve({ data: 'debug', error: null })
+    }
 
     const dataPromise = new Promise(resolve => {
         stdoutRws.addToResolveMap(commandNumber, resolve)
     })
-
     const errPromise = new Promise(resolve =>
         stderrRws.addToResolveMap(commandNumber, resolve)
     )
 
-    execute(process, command, commandNumber, args, noSplitArgs)
+    execute(proc, command, commandNumber, args, noSplitArgs, encoding)
 
     return Promise.all([
         dataPromise,
@@ -141,4 +146,5 @@ module.exports = {
     mapDataToTagArray,
     getArgs,
     execute,
+    isString,
 }
