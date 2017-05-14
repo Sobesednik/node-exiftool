@@ -19,7 +19,7 @@ class ExiftoolProcess extends EventEmitter {
      */
     constructor(bin) {
         super()
-        this._bin = bin !== undefined ? bin : EXIFTOOL_PATH
+        this._bin = lib.isString(bin) ? bin : EXIFTOOL_PATH
         this._process = undefined
         this._open = false
     }
@@ -40,11 +40,25 @@ class ExiftoolProcess extends EventEmitter {
             })
     }
 
+    _assignEncoding(encoding) {
+        let _encoding
+        if (encoding === null) {
+            _encoding = undefined
+        } else if (lib.isString(encoding)) {
+            _encoding = encoding
+        } else {
+            _encoding = 'utf8'
+        }
+        this._encoding = _encoding
+    }
     /**
      * Spawn exfitool process with -stay_open True -@ - arguments.
      * @returns {Promise} a promise to spawn exiftool in stay_open mode.
+     * @param {string} [encoding=utf8] - encoding with which to read from and write to streams.
+     * pass null to not use encoding, utf8 otherwise
      */
-    open() {
+    open(encoding) {
+        this._assignEncoding(encoding)
         if (this._open) {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
@@ -57,6 +71,10 @@ class ExiftoolProcess extends EventEmitter {
                 exiftoolProcess.on('exit', this._exitListener.bind(this))
 
                 // resolve write streams
+                if (this._encoding) {
+                    exiftoolProcess.stdout.setEncoding(this._encoding)
+                    exiftoolProcess.stderr.setEncoding(this._encoding)
+                }
                 this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stdout)
                 this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stderr)
 
@@ -88,7 +106,7 @@ class ExiftoolProcess extends EventEmitter {
         return this._open
     }
 
-    _executeCommand(command, args, argsNoSplit) {
+    _executeCommand(command, args, argsNoSplit, debug) {
         //test this!
         if (!this._open) {
             return Promise.reject(new Error('exiftool is not open'))
@@ -97,8 +115,9 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Could not connect to the exiftool process'))
         }
 
-        return lib.executeCommand(this._process, this._stdoutResolveWs,
-            this._stderrResolveWs, command, args, argsNoSplit)
+        const proc = debug === true ? process : this._process
+        return lib.executeCommand(proc, this._stdoutResolveWs,
+            this._stderrResolveWs, command, args, argsNoSplit, this._encoding)
     }
 
     /**
@@ -116,15 +135,22 @@ class ExiftoolProcess extends EventEmitter {
     /**
      * Write metadata to a file or directory.
      * @param {string} file - path to the file or directory
-     * @param {Object} data - data to write, with keys as tags.
+     * @param {object} data - data to write, with keys as tags.
+     * @param {object}
+     * @param {string} destination where to write
+     * @param {boolean} debug whether to print to stdout
      * @returns {Promise} a promise to write metadata
      */
-    writeMetadata(file, data, args) {
+    writeMetadata(file, data, args, debug) {
+        if (!lib.isString(file)) {
+            throw new Error('File must be a string')
+        }
         if (!lib.checkDataObject(data)) {
             return Promise.reject(new Error('Data argument is not an object'))
         }
+
         const writeArgs = lib.mapDataToTagArray(data)
-        return this._executeCommand(file, args, writeArgs)
+        return this._executeCommand(file, args, writeArgs, debug)
     }
 }
 

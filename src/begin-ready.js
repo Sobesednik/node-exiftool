@@ -102,6 +102,7 @@ function createResolverWriteStream() {
 /**
  * Setup a pipe from process std stream into resolve write stream
  * through regex transform and begin-ready transform streams.
+ * @param {Readable} rs Readable stream (from exiftool process)
  * @return {Writable} A Resolve transform stream.
  */
 function setupResolveWriteStreamPipe(rs) {

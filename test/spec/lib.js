@@ -59,6 +59,14 @@ const libTestSuite = {
         },
     },
     getArgs: {
+        'should return empty array if argument is not array': () => {
+            const res = lib.getArgs('non-array')
+            assert.deepEqual(res, [])
+        },
+        'should return empty array if argument is empty array': () => {
+            const res = lib.getArgs([])
+            assert.deepEqual(res, [])
+        },
         'should map args array to a string': () => {
             const args = ['Creator', 'CreatorWorkURL', 'Orientation']
             const res = lib.getArgs(args)
@@ -109,10 +117,26 @@ const libTestSuite = {
             const args = [ 'Creator', 'ext dng', 'o  metadata.txt', false, NaN ]
             const noSplitArgs = [ 'comment=hello world' ]
             lib.execute(process, command, commandNumber, args, noSplitArgs)
-            const expected = [ '-Creator', EOL, '-ext', EOL, 'dng', EOL, '-o', EOL, 'metadata.txt',
-                EOL, '-comment=hello world', EOL, '-json', EOL, '-s', EOL, 'file.jpg', EOL,
-                '-echo1', EOL, '{begin1}', EOL, '-echo2', EOL, '{begin1}', EOL, '-echo4', EOL,
-                '{ready1}', EOL, '-execute1', EOL ]
+            const expected = [
+                '-comment=hello world',
+                '-Creator',
+                '-ext',
+                'dng',
+                '-o',
+                'metadata.txt',
+                '-json',
+                '-s',
+                'file.jpg',
+                '-echo1',
+                '{begin1}',
+                '-echo2',
+                '{begin1}',
+                '-echo4',
+                '{ready1}',
+                '-execute1',
+            ].reduce((acc, arg) => {
+                return [].concat(acc, [arg, EOL])
+            }, [])
             assert.equal(records.length, expected.length)
             records.forEach((arg, index) =>
                 assert.equal(arg, expected[index])

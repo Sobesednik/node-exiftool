@@ -1,8 +1,8 @@
 /**
  * This shows how to write code for node-exiftool if you need to
- * use callbacks. 
- * 
- * LOCAL=1 node example/callback 28.jpg, or
+ * use callbacks.
+ *
+ * LOCAL=1 node examples/callback 28.jpg, or
  * npm run callback-example
  */
 

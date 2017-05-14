@@ -1,6 +1,26 @@
-# Current master (not released)
+<a name="2.1.2"></a>
+# [2.1.2](https://github.com/Sobesednik/node-exiftool/compare/v2.1.1...v2.1.2) (2017-5-14)
 
-- update to `zoroaster` 0.4.1 and use `context` in tests
+### Repo
+
+* [tests] update to `zoroaster` 0.4.3 and use `Exiftool` context in tests ([7e99f58](https://github.com/Sobesednik/node-exiftool/commit/7e99f58) &
+[40fa597](https://github.com/Sobesednik/node-exiftool/commit/40fa597))
+* [tests] filename encoding test ([ba7aa1b](https://github.com/Sobesednik/node-exiftool/commit/ba7aa1b))
+* [examples] add write_metadata ([3432e63](https://github.com/Sobesednik/node-exiftool/commit/3432e63))
+and callback examples ([c748783](https://github.com/Sobesednik/node-exiftool/commit/c748783))
+* [readme] Improve readme with fuller examples, and better structure
+([532f147](https://github.com/Sobesednik/node-exiftool/commit/532f147))
+
+### Bugfix
+* Fix orded of arguments to allow to specify `codedcharacterset=utf8` ([e15ea35](https://github.com/Sobesednik/node-exiftool/commit/e15ea35)),
+closes [#22](https://github.com/Sobesednik/node-exiftool/issues/22)
+
+### Feature
+* `debug:bool` as 4th argument to `writeMetadata` to stream commands to terminal's stdout instead of
+exiftool process ([e15ea35](https://github.com/Sobesednik/node-exiftool/commit/e15ea35))
+* `encoding` argument for `.open(encoding)` method, to specify stdio streams' encoding and which to
+use for `proc.stdin.write(data, encoding)` call - `utf8` by default, `null` to keep undefined
+([e15ea35](https://github.com/Sobesednik/node-exiftool/commit/e15ea35))
 
 <a name="2.1.1"></a>
 # [2.1.1](https://github.com/Sobesednik/node-exiftool/compare/v2.1.0...v2.1.1) (2016-12-25)
