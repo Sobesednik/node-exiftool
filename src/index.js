@@ -1,6 +1,7 @@
 'use strict'
 
 const EventEmitter = require('events')
+const Transform = require('stream').Transform
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
 
@@ -9,6 +10,16 @@ const EXIFTOOL_PATH = 'exiftool'
 const events = {
     OPEN: 'exiftool_opened',
     EXIT: 'exiftool_exit',
+}
+
+function makeConsoleTransform(info) {
+    const ts = new Transform({
+        transform: (chunk, encoding, cb) => {
+            ts.push(`exiftool ${info || ''} said: ${chunk}`)
+            cb()
+        },
+    })
+    return ts
 }
 
 class ExiftoolProcess extends EventEmitter {
@@ -32,7 +43,7 @@ class ExiftoolProcess extends EventEmitter {
         if (!this._open) {
             return Promise.reject(new Error('Exiftool process is not open'))
         }
-        return lib.close(this._process)
+        return lib.close(this._process, this._fileInput)
             .then(() => {
                 this._stdoutResolveWs.end()
                 this._stderrResolveWs.end()
@@ -56,13 +67,17 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise to spawn exiftool in stay_open mode.
      * @param {string} [encoding=utf8] - encoding with which to read from and write to streams.
      * pass null to not use encoding, utf8 otherwise
+     * @param {string} [fileInput] file to use for argument stream, stdin by default (-@ -)
+     * @param {boolean} [debug=false] pipe exiftool's stdout and stderr to process's stdout and
+     * stderr
      */
-    open(encoding) {
+    open(encoding, fileInput, debug) {
         this._assignEncoding(encoding)
         if (this._open) {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
-        return lib.spawn(this._bin)
+        this._fileInput = lib.isString(fileInput) ? fileInput : undefined
+        return lib.spawn(this._bin, this._fileInput)
             .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
                 this.emit(events.OPEN, exiftoolProcess.pid)
@@ -70,11 +85,12 @@ class ExiftoolProcess extends EventEmitter {
 
                 exiftoolProcess.on('exit', this._exitListener.bind(this))
 
-                // resolve write streams
+                // set encoding
                 if (this._encoding) {
                     exiftoolProcess.stdout.setEncoding(this._encoding)
                     exiftoolProcess.stderr.setEncoding(this._encoding)
                 }
+                // resolve write streams
                 this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stdout)
                 this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stderr)
 
@@ -83,8 +99,13 @@ class ExiftoolProcess extends EventEmitter {
                 this._stderrResolveWs.on('error', console.error)
 
                 // debug
-                // exiftoolProcess.stdout.pipe(process.stdout)
-                // exiftoolProcess.stderr.pipe(process.stderr)
+                if (debug === true) {
+                    const stdoutts = makeConsoleTransform('stdout')
+                    const stderrts = makeConsoleTransform('stderrts')
+
+                    exiftoolProcess.stdout.pipe(stdoutts).pipe(process.stdout)
+                    exiftoolProcess.stderr.pipe(stderrts).pipe(process.stderr)
+                }
 
                 this._open = true
 

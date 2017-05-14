@@ -1,5 +1,6 @@
 const cp = require('child_process')
 const EOL = require('os').EOL
+const fs = require('fs')
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -7,7 +8,43 @@ function writeStdIn(proc, data, encoding) {
     proc.stdin.write(EOL, encoding)
 }
 
-function close(proc) {
+function createWriteStream(filePath, options) {
+    let errorRejectListener
+    let openResolveListener
+    let writeStream
+    const after = () => {
+        writeStream.removeListener('error', errorRejectListener)
+        writeStream.removeListener('open', openResolveListener)
+        return writeStream
+    }
+    return new Promise((resolve, reject) => {
+        errorRejectListener = reject
+        writeStream = fs.createWriteStream(filePath, options || {})
+        writeStream.on('error', errorRejectListener)
+        openResolveListener = () => resolve(writeStream)
+        writeStream.on('open', openResolveListener)
+    })
+        .then(after, (err) => { after(); throw err } )
+}
+
+function writeClose(proc, writable) {
+    return new Promise((resolve) => {
+        proc.on('close', resolve)
+        writable.write('-stay_open')
+        writable.write(EOL)
+        writable.write('false')
+        writable.write(EOL)
+    })
+}
+
+/**
+ * Send close command, either to a process's stdin, or write to a file
+ */
+function close(proc, fileInput) {
+    if (isString(fileInput)) {
+        return createWriteStream(fileInput)
+            .then(writeStream => writeClose(proc, writeStream))
+    }
     return new Promise((resolve) => {
         proc.on('close', resolve)
         writeStdIn(proc, '-stay_open')
@@ -98,10 +135,11 @@ function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, 
         }))
 }
 
-function spawn(bin) {
+function spawn(bin, argumentFile) {
+    const argInput = isString(argumentFile) ? argumentFile.split(' ')[0] : '-'
     return new Promise((resolve, reject) => {
         const echoString = Date.now().toString()
-        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', '-'])
+        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', argInput])
         process.once('error', reject)
         const echoHandler = (data) => {
             const d = data.toString().trim()
