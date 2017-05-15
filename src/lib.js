@@ -1,3 +1,5 @@
+'use strict'
+
 const cp = require('child_process')
 const EOL = require('os').EOL
 const fs = require('fs')

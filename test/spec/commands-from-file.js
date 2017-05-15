@@ -41,13 +41,11 @@ const libTestSuite = {
         },
         'should close the process': (ctx) => {
             ctx.create()
-            ctx.dataFile = '/var/folders/s0/zp77ycl55kl4hy39s889z3xc0000gn/T/node-exiftool_test_7423.data'
             return ctx.createDataFile(null, 'data')
                 .then(() => ctx.open('utf8', ctx.dataFile, true))
                 .then(() => {
-                    console.log('data file: %s', ctx.dataFile)
+                    // console.log('data file: %s', ctx.dataFile)
                     const p = new Promise(resolve => ctx.ep._process.on('close', () => {
-                        console.log('process closed')
                         resolve()
                     }))
 
