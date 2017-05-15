@@ -7,22 +7,6 @@ const context = require('../context/ExiftoolContext')
 const ChildProcess = child_process.ChildProcess
 const EOL = os.EOL
 
-function assertJpegMetadata(file) {
-    const mask = {
-        FileType: 'JPEG',
-        MIMEType: 'image/jpeg',
-        CreatorWorkURL: 'https://sobesednik.media',
-        Creator: 'Photographer Name',
-        Scene: '011200',
-    }
-    // shallow deep equal
-    Object.keys(mask)
-        .forEach((key) => {
-            assert.equal(file[key], mask[key])
-        })
-
-}
-
 const exiftoolTestSuite = {
     context,
     class: {
@@ -110,14 +94,14 @@ const exiftoolTestSuite = {
                         .then((res) => {
                             assert(Array.isArray(res.data))
                             assert.equal(res.error, null)
-                            res.data.forEach(assertJpegMetadata)
+                            res.data.forEach(ctx.assertJpegMetadata)
                         })
                     const p2 = ctx.ep
                         .readMetadata(ctx.jpegFile2)
                         .then((res) => {
                             assert(Array.isArray(res.data))
                             assert.equal(res.error, null)
-                            res.data.forEach(assertJpegMetadata)
+                            res.data.forEach(ctx.assertJpegMetadata)
                         })
                     const readPromises = Promise.all([p, p2])
 
@@ -167,7 +151,7 @@ const exiftoolTestSuite = {
                 .then((res) => {
                     assert(Array.isArray(res.data))
                     assert.equal(res.data.length, 5)
-                    res.data.forEach(assertJpegMetadata)
+                    res.data.forEach(ctx.assertJpegMetadata)
                     assert.equal(res.error, `1 directories scanned${EOL}    5 image files read`)
                 })
         },
@@ -250,11 +234,11 @@ const exiftoolTestSuite = {
 
                     assert(Array.isArray(res[2].data))
                     assert.equal(res[2].error, null)
-                    res[2].data.forEach(assertJpegMetadata)
+                    res[2].data.forEach(ctx.assertJpegMetadata)
 
                     assert(Array.isArray(res[3].data))
                     assert.equal(res[3].error, null)
-                    res[3].data.forEach(assertJpegMetadata)
+                    res[3].data.forEach(ctx.assertJpegMetadata)
                 })
         },
     },

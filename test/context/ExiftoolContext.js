@@ -4,6 +4,7 @@ const os = require('os')
 const exiftoolBin = require('dist-exiftool')
 const exiftool = require('../../src/index')
 const createWriteStream = require('./create-write-stream')
+const assert = require('assert')
 
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
@@ -42,6 +43,22 @@ const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
     fs.unlink(tempFile, err => (err ? reject(err) : resolve(tempFile)))
 )
 
+function assertJpegMetadata(file) {
+    const mask = {
+        FileType: 'JPEG',
+        MIMEType: 'image/jpeg',
+        CreatorWorkURL: 'https://sobesednik.media',
+        Creator: 'Photographer Name',
+        Scene: '011200',
+    }
+    // shallow deep equal
+    Object.keys(mask)
+        .forEach((key) => {
+            assert.equal(file[key], mask[key])
+        })
+
+}
+
 const context = function Context() {
     this._ep = null
 
@@ -51,6 +68,7 @@ const context = function Context() {
         folder,
         emptyFolder,
         filenameWithEncoding,
+        assertJpegMetadata,
     })
 
     Object.defineProperties(this, {
@@ -151,7 +169,7 @@ const context = function Context() {
                     })
                 })
         }},
-        _destroy: { get: () => {
+        _destroy: { value: () => {
             console.log('destroy')
             const promises = []
             if (this.ep && this.ep.isOpen) {
@@ -160,9 +178,9 @@ const context = function Context() {
             if (this.tempFile) {
                 promises.push(unlinkTempFile(this.tempFile))
             }
-            // if (this.dataFile) {
-            //     promises.push(unlinkTempFile(this.dataFile))
-            // }
+            if (this.dataFile) {
+                promises.push(unlinkTempFile(this.dataFile))
+            }
             return Promise.all(promises)
         }},
     })

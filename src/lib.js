@@ -1,6 +1,7 @@
 const cp = require('child_process')
 const EOL = require('os').EOL
 const fs = require('fs')
+const Writable = require('stream').Writable
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -40,16 +41,27 @@ function writeClose(proc, writable) {
 /**
  * Send close command, either to a process's stdin, or write to a file
  */
-function close(proc, fileInput) {
-    if (isString(fileInput)) {
-        return createWriteStream(fileInput)
-            .then(writeStream => writeClose(proc, writeStream))
+function close(proc, writeStream) {
+    if (writeStream instanceof Writable && writeStream.writable) {
+        return writeClose(proc, writeStream)
     }
     return new Promise((resolve) => {
         proc.on('close', resolve)
         writeStdIn(proc, '-stay_open')
         writeStdIn(proc, 'false')
     })
+}
+
+function closeWritable(writeStream) {
+    if (writeStream instanceof Writable && writeStream.writable) {
+        return new Promise(resolve => {
+            writeStream.once('finish', () => {
+                resolve(writeStream)
+            })
+            writeStream.end()
+        })
+    }
+    return Promise.resolve()
 }
 
 function isString(s) {
@@ -185,4 +197,6 @@ module.exports = {
     getArgs,
     execute,
     isString,
+    createWriteStream,
+    closeWritable,
 }

@@ -4,6 +4,8 @@ const EventEmitter = require('events')
 const Transform = require('stream').Transform
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
+const Writable = require('stream').Writable
+const createWriteStream = lib.createWriteStream
 
 const EXIFTOOL_PATH = 'exiftool'
 
@@ -43,7 +45,9 @@ class ExiftoolProcess extends EventEmitter {
         if (!this._open) {
             return Promise.reject(new Error('Exiftool process is not open'))
         }
-        return lib.close(this._process, this._fileInput)
+
+        return lib.close(this._process, this._ws)
+            .then(() => lib.closeWritable(this._ws))
             .then(() => {
                 this._stdoutResolveWs.end()
                 this._stderrResolveWs.end()
@@ -77,7 +81,13 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
         this._fileInput = lib.isString(fileInput) ? fileInput : undefined
-        return lib.spawn(this._bin, this._fileInput)
+        const fileInputPromise = this._fileInput ? createWriteStream(this._fileInput, {
+            flags: 'a',
+        }).then((ws) => {
+            this._ws = ws
+        }) : Promise.resolve()
+        return fileInputPromise
+            .then(() => lib.spawn(this._bin, this._fileInput))
             .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
                 this.emit(events.OPEN, exiftoolProcess.pid)
@@ -101,11 +111,13 @@ class ExiftoolProcess extends EventEmitter {
                 // debug
                 if (debug === true) {
                     const stdoutts = makeConsoleTransform('stdout')
-                    const stderrts = makeConsoleTransform('stderrts')
+                    const stderrts = makeConsoleTransform('stderrt')
 
                     exiftoolProcess.stdout.pipe(stdoutts).pipe(process.stdout)
                     exiftoolProcess.stderr.pipe(stderrts).pipe(process.stderr)
                 }
+
+                console.log('open')
 
                 this._open = true
 
@@ -137,8 +149,11 @@ class ExiftoolProcess extends EventEmitter {
         }
 
         const proc = debug === true ? process : this._process
-        return lib.executeCommand(proc, this._stdoutResolveWs,
-            this._stderrResolveWs, command, args, argsNoSplit, this._encoding)
+        const fileInputProc = this._ws instanceof Writable && this._ws.writable ? {
+            stdin: this._ws,
+        } : null
+        return lib.executeCommand(fileInputProc ? fileInputProc : proc, this._stdoutResolveWs,
+            this._stderrResolveWs,command, args, argsNoSplit, this._encoding)
     }
 
     /**
@@ -149,8 +164,8 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise resolved with data (array or null) and error
      * (string or null) properties from stdout and stderr of exiftool.
      */
-    readMetadata(file, args) {
-        return this._executeCommand(file, args)
+    readMetadata(file, args, debug) {
+        return this._executeCommand(file, args, [], debug)
     }
 
     /**
