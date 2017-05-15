@@ -173,13 +173,18 @@ const context = function Context() {
             console.log('destroy')
             const promises = []
             if (this.ep && this.ep.isOpen) {
-                promises.push(this.ep.close())
+                promises.push(this.ep.close()
+                    .then(() => {
+                        if (this.dataFile) {
+                            return unlinkTempFile(this.dataFile)
+                        }
+                    })
+                )
+            } else if (this.dataFile) {
+                promises.push(unlinkTempFile(this.dataFile))
             }
             if (this.tempFile) {
                 promises.push(unlinkTempFile(this.tempFile))
-            }
-            if (this.dataFile) {
-                promises.push(unlinkTempFile(this.dataFile))
             }
             return Promise.all(promises)
         }},
