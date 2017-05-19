@@ -17,7 +17,6 @@ function createWriteStream(filePath, options) {
     let writeStream
     const after = () => {
         writeStream.removeListener('error', errorRejectListener)
-        writeStream.removeListener('open', openResolveListener)
         return writeStream
     }
     return new Promise((resolve, reject) => {
@@ -25,9 +24,9 @@ function createWriteStream(filePath, options) {
         writeStream = fs.createWriteStream(filePath, options || {})
         writeStream.on('error', errorRejectListener)
         openResolveListener = () => resolve(writeStream)
-        writeStream.on('open', openResolveListener)
+        writeStream.once('open', openResolveListener)
     })
-        .then(after, (err) => { after(); throw err } )
+        .catch((err) => { after(); throw err } )
 }
 
 function writeClose(proc, writable) {

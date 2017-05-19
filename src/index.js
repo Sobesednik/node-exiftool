@@ -6,6 +6,9 @@ const lib = require('./lib')
 const beginReady = require('./begin-ready')
 const Writable = require('stream').Writable
 const createWriteStream = lib.createWriteStream
+const path = require('path')
+const os = require('os')
+
 
 const EXIFTOOL_PATH = 'exiftool'
 
@@ -167,6 +170,35 @@ class ExiftoolProcess extends EventEmitter {
     readMetadata(file, args, debug) {
         return this._executeCommand(file, args, [], debug)
     }
+
+    readMetadataFromStream(rs, args, debug) {
+        const file = path.join(os.tmpdir(), 'node-exiftool_test_temp')
+        let closePromise
+        let result
+        return lib.createWriteStream(file)
+            .then((ws) => {
+                closePromise = new Promise(r => ws.on('close', r))
+                rs.pipe(ws)
+                return this._executeCommand(file, args, [], debug)
+            })
+            .then((res) => {
+                result = res
+                return closePromise
+            })
+            .then(() => result)
+    }
+
+    // writeToDataFile(data) {
+    //     if (this._ws && this._ws.writable) {
+    //         return new Promise((resolve) => {
+    //             this._ws.write('-@\n', resolve)
+    //         })
+    //         .then(() => {
+
+    //         })
+    //     }
+    //     return Promise.reject(new Error('data file is not writable'))
+    // }
 
     /**
      * Write metadata to a file or directory.
