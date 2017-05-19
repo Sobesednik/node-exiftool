@@ -34,5 +34,7 @@
     "dist-exiftool": "10.53.0",
     "zoroaster": "0.4.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "restream": "1.0.0"
+  }
 }
