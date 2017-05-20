@@ -1,3 +1,19 @@
+<a name="2.1.5"></a>
+# [2.1.5](https://github.com/Sobesednik/node-exiftool/compare/v2.1.4...v2.1.5) (2017-5-20)
+
+* [bugfix] uptadte to `restream@1.0.1` (`use strcit` fix) [https://github.com/Sobesednik/node-exiftool/commit/6bb864b](6bb864b)
+
+<a name="2.1.4"></a>
+# [2.1.4](https://github.com/Sobesednik/node-exiftool/compare/v2.1.3...v2.1.4) (2017-5-20)
+
+* use `restream`  [85430ae](https://github.com/Sobesednik/node-exiftool/commit/85430ae)
+* [bugfix] don't use `Math.random()` [c73d39b](https://github.com/Sobesednik/node-exiftool/commit/c73d39b) by _Théo Buri_
+
+<a name="2.1.3"></a>
+# [2.1.3](https://github.com/Sobesednik/node-exiftool/compare/v2.1.2...v2.1.3) (2017-5-17)
+
+* update to `dist-exiftool@10.53.0` [1523044](https://github.com/Sobesednik/node-exiftool/commit/1523044)
+
 <a name="2.1.2"></a>
 # [2.1.2](https://github.com/Sobesednik/node-exiftool/compare/v2.1.1...v2.1.2) (2017-5-14)
 
