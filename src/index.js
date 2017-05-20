@@ -1,14 +1,30 @@
 'use strict'
 
 const EventEmitter = require('events')
+const Transform = require('stream').Transform
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
+const Writable = require('stream').Writable
+const createWriteStream = lib.createWriteStream
+const path = require('path')
+const os = require('os')
+
 
 const EXIFTOOL_PATH = 'exiftool'
 
 const events = {
     OPEN: 'exiftool_opened',
     EXIT: 'exiftool_exit',
+}
+
+function makeConsoleTransform(info) {
+    const ts = new Transform({
+        transform: (chunk, encoding, cb) => {
+            ts.push(`exiftool ${info || ''} said: ${chunk}`)
+            cb()
+        },
+    })
+    return ts
 }
 
 class ExiftoolProcess extends EventEmitter {
@@ -32,7 +48,9 @@ class ExiftoolProcess extends EventEmitter {
         if (!this._open) {
             return Promise.reject(new Error('Exiftool process is not open'))
         }
-        return lib.close(this._process)
+
+        return lib.close(this._process, this._ws)
+            .then(() => lib.closeWritable(this._ws))
             .then(() => {
                 this._stdoutResolveWs.end()
                 this._stderrResolveWs.end()
@@ -56,13 +74,23 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise to spawn exiftool in stay_open mode.
      * @param {string} [encoding=utf8] - encoding with which to read from and write to streams.
      * pass null to not use encoding, utf8 otherwise
+     * @param {string} [fileInput] file to use for argument stream, stdin by default (-@ -)
+     * @param {boolean} [debug=false] pipe exiftool's stdout and stderr to process's stdout and
+     * stderr
      */
-    open(encoding) {
+    open(encoding, fileInput, debug) {
         this._assignEncoding(encoding)
         if (this._open) {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
-        return lib.spawn(this._bin)
+        this._fileInput = lib.isString(fileInput) ? fileInput : undefined
+        const fileInputPromise = this._fileInput ? createWriteStream(this._fileInput, {
+            flags: 'a',
+        }).then((ws) => {
+            this._ws = ws
+        }) : Promise.resolve()
+        return fileInputPromise
+            .then(() => lib.spawn(this._bin, this._fileInput))
             .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
                 this.emit(events.OPEN, exiftoolProcess.pid)
@@ -70,11 +98,12 @@ class ExiftoolProcess extends EventEmitter {
 
                 exiftoolProcess.on('exit', this._exitListener.bind(this))
 
-                // resolve write streams
+                // set encoding
                 if (this._encoding) {
                     exiftoolProcess.stdout.setEncoding(this._encoding)
                     exiftoolProcess.stderr.setEncoding(this._encoding)
                 }
+                // resolve write streams
                 this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stdout)
                 this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stderr)
 
@@ -83,8 +112,15 @@ class ExiftoolProcess extends EventEmitter {
                 this._stderrResolveWs.on('error', console.error)
 
                 // debug
-                // exiftoolProcess.stdout.pipe(process.stdout)
-                // exiftoolProcess.stderr.pipe(process.stderr)
+                if (debug === true) {
+                    const stdoutts = makeConsoleTransform('stdout')
+                    const stderrts = makeConsoleTransform('stderrt')
+
+                    exiftoolProcess.stdout.pipe(stdoutts).pipe(process.stdout)
+                    exiftoolProcess.stderr.pipe(stderrts).pipe(process.stderr)
+                }
+
+                console.log('open')
 
                 this._open = true
 
@@ -116,8 +152,11 @@ class ExiftoolProcess extends EventEmitter {
         }
 
         const proc = debug === true ? process : this._process
-        return lib.executeCommand(proc, this._stdoutResolveWs,
-            this._stderrResolveWs, command, args, argsNoSplit, this._encoding)
+        const fileInputProc = this._ws instanceof Writable && this._ws.writable ? {
+            stdin: this._ws,
+        } : null
+        return lib.executeCommand(fileInputProc ? fileInputProc : proc, this._stdoutResolveWs,
+            this._stderrResolveWs,command, args, argsNoSplit, this._encoding)
     }
 
     /**
@@ -128,9 +167,38 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise} a promise resolved with data (array or null) and error
      * (string or null) properties from stdout and stderr of exiftool.
      */
-    readMetadata(file, args) {
-        return this._executeCommand(file, args)
+    readMetadata(file, args, debug) {
+        return this._executeCommand(file, args, [], debug)
     }
+
+    readMetadataFromStream(rs, args, debug) {
+        const file = path.join(os.tmpdir(), 'node-exiftool_test_temp')
+        let closePromise
+        let result
+        return lib.createWriteStream(file)
+            .then((ws) => {
+                closePromise = new Promise(r => ws.on('close', r))
+                rs.pipe(ws)
+                return this._executeCommand(file, args, [], debug)
+            })
+            .then((res) => {
+                result = res
+                return closePromise
+            })
+            .then(() => result)
+    }
+
+    // writeToDataFile(data) {
+    //     if (this._ws && this._ws.writable) {
+    //         return new Promise((resolve) => {
+    //             this._ws.write('-@\n', resolve)
+    //         })
+    //         .then(() => {
+
+    //         })
+    //     }
+    //     return Promise.reject(new Error('data file is not writable'))
+    // }
 
     /**
      * Write metadata to a file or directory.

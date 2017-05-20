@@ -1,8 +1,11 @@
-const fs = require('fs')
-const path = require('path')
-const os = require('os')
+const assert = require('assert')
 const exiftoolBin = require('dist-exiftool')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+const wrote = require('wrote')
 const exiftool = require('../../src/index')
+const createWriteStream = require('./create-write-stream')
 
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
@@ -19,24 +22,48 @@ const emptyFolder = path.join(testDir, fixturesDir, 'empty')
 const filenameWithEncoding = path.join(testDir, fixturesDir, 'Fọto.jpg')
 
 // create temp file for writing metadata
-function makeTempFile() {
+function makeTempFile(inputFile, extension) {
     const n = Math.floor(Math.random() * 100000)
-    const tempFile = path.join(os.tmpdir(), `node-exiftool_test_${n}.jpg`)
-    return new Promise((resolve, reject) => {
-        const rs = fs.createReadStream(jpegFile)
-        const ws = fs.createWriteStream(tempFile)
-        rs.on('error', reject)
-        ws.on('error', reject)
-        ws.on('close', () => {
-            resolve(tempFile)
+    const tempFile = path.join(os.tmpdir(), `node-exiftool_test_${n}.${extension}`)
+    return wrote(tempFile)
+        .then((ws) => {
+            return new Promise((resolve, reject) => {
+                if (inputFile) {
+                    const rs = fs.createReadStream(inputFile)
+                    rs.on('error', reject)
+                    return rs.pipe(ws)
+                }
+                ws.close()
+                return ws
+            })
+            .then((ws) => {
+                return new Promise((resolve, reject) => {
+                    ws.on('close', resolve)
+                    ws.on('error', reject)
+                })
+            })
         })
-        rs.pipe(ws)
-    })
 }
 
 const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
     fs.unlink(tempFile, err => (err ? reject(err) : resolve(tempFile)))
 )
+
+function assertJpegMetadata(file) {
+    const mask = {
+        FileType: 'JPEG',
+        MIMEType: 'image/jpeg',
+        CreatorWorkURL: 'https://sobesednik.media',
+        Creator: 'Photographer Name',
+        Scene: '011200',
+    }
+    // shallow deep equal
+    Object.keys(mask)
+        .forEach((key) => {
+            assert.equal(file[key], mask[key])
+        })
+
+}
 
 const context = function Context() {
     this._ep = null
@@ -47,12 +74,19 @@ const context = function Context() {
         folder,
         emptyFolder,
         filenameWithEncoding,
+        assertJpegMetadata,
     })
 
     Object.defineProperties(this, {
         jpegFile: { get: () => jpegFile },
         jpegFile2: { get: () => jpegFile2 },
         tempFile: { get: () => this._tempFile },
+        dataFile: {
+            get: () => this._dataFile,
+            set: (value) => {
+                this._dataFile = value
+            },
+        },
         defaultBin: { get: () => 'exiftool' },
         replaceSlashes: { get: () => replaceSlashes },
 
@@ -66,9 +100,9 @@ const context = function Context() {
             this._ep = ep
             return this
         }},
-        open: { value: () => {
+        open: { value: (encoding, file, debug) => {
             if (this.ep)
-                return this.ep.open()
+                return this.ep.open(encoding, file, debug)
             throw new Error('ep has not been created')
         }},
         createOpen: { value: (bin) => {
@@ -103,16 +137,57 @@ const context = function Context() {
             if (this._tempFile) {
                 return Promise.reject(new Error('Temp file is already created.'))
             }
-            return makeTempFile()
+            return makeTempFile(jpegFile, 'jpg')
                 .then((res) => {
                     this._tempFile = res
                     return res
                 })
         }},
-        _destroy: { get: () => {
+        createDataFile: { value: function createDataFile(inputFile, extension) {
+            if (this._dataFile) {
+                return Promise.resolve(this._dataFile)
+                // return Promise.reject(new Error('Data file is already created.'))
+            }
+            return makeTempFile(inputFile, extension)
+                .then((res) => {
+                    this._dataFile = res
+                    return res
+                })
+        }},
+        writeToDataFile: { value: function writeToDataFile(data) {
+            if (!this._dataFile) {
+                return Promise.reject(new Error('Data file is not available.'))
+            }
+            return createWriteStream(this._dataFile, {
+                flags: 'a',
+            })
+                .then((ws) => {
+                    this._ws = ws
+                })
+                .then(() => {
+                    return new Promise(resolve => {
+                        this._ws.write(data, resolve)
+                    })
+                })
+                .then(() => {
+                    return new Promise(resolve => {
+                        this._ws.end(resolve)
+                    })
+                })
+        }},
+        _destroy: { value: () => {
+            console.log('destroy')
             const promises = []
             if (this.ep && this.ep.isOpen) {
-                promises.push(this.ep.close())
+                promises.push(this.ep.close()
+                    .then(() => {
+                        if (this.dataFile) {
+                            return unlinkTempFile(this.dataFile)
+                        }
+                    })
+                )
+            } else if (this.dataFile) {
+                promises.push(unlinkTempFile(this.dataFile))
             }
             if (this.tempFile) {
                 promises.push(unlinkTempFile(this.tempFile))

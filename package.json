@@ -31,10 +31,11 @@
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
     "cross-env": "3.1.3",
-    "dist-exiftool": "10.53.0",
-    "zoroaster": "0.4.3"
+    "zoroaster": "0.4.4",
+    "dist-exiftool": "10.53.0"
   },
   "dependencies": {
-    "restream": "1.0.0"
+    "restream": "1.0.0",
+    "wrote": "^0.1.0"
   }
 }

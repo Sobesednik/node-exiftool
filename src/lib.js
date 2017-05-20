@@ -1,5 +1,9 @@
+'use strict'
+
 const cp = require('child_process')
 const EOL = require('os').EOL
+const fs = require('fs')
+const Writable = require('stream').Writable
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -7,12 +11,56 @@ function writeStdIn(proc, data, encoding) {
     proc.stdin.write(EOL, encoding)
 }
 
-function close(proc) {
+function createWriteStream(filePath, options) {
+    let errorRejectListener
+    let writeStream
+    const after = () => {
+        writeStream.removeListener('error', errorRejectListener)
+        return writeStream
+    }
+    return new Promise((resolve, reject) => {
+        errorRejectListener = reject
+        writeStream = fs.createWriteStream(filePath, options || {})
+        writeStream.on('error', errorRejectListener)
+        writeStream.once('open', () => resolve(writeStream))
+    })
+        .catch((err) => { after(); throw err } )
+}
+
+function writeClose(proc, writable) {
+    return new Promise((resolve) => {
+        proc.on('close', resolve)
+        writable.write('-stay_open')
+        writable.write(EOL)
+        writable.write('false')
+        writable.write(EOL)
+    })
+}
+
+/**
+ * Send close command, either to a process's stdin, or write to a file
+ */
+function close(proc, writeStream) {
+    if (writeStream instanceof Writable && writeStream.writable) {
+        return writeClose(proc, writeStream)
+    }
     return new Promise((resolve) => {
         proc.on('close', resolve)
         writeStdIn(proc, '-stay_open')
         writeStdIn(proc, 'false')
     })
+}
+
+function closeWritable(writeStream) {
+    if (writeStream instanceof Writable && writeStream.writable) {
+        return new Promise(resolve => {
+            writeStream.once('finish', () => {
+                resolve(writeStream)
+            })
+            writeStream.end()
+        })
+    }
+    return Promise.resolve()
 }
 
 function isString(s) {
@@ -105,10 +153,11 @@ function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, 
         }))
 }
 
-function spawn(bin) {
+function spawn(bin, argumentFile) {
+    const argInput = isString(argumentFile) ? argumentFile.split(' ')[0] : '-'
     return new Promise((resolve, reject) => {
         const echoString = Date.now().toString()
-        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', '-'])
+        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', argInput])
         process.once('error', reject)
         const echoHandler = (data) => {
             const d = data.toString().trim()
@@ -154,4 +203,6 @@ module.exports = {
     getArgs,
     execute,
     isString,
+    createWriteStream,
+    closeWritable,
 }
