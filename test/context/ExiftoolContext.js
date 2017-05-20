@@ -30,16 +30,15 @@ function makeTempFile(inputFile, extension) {
             return new Promise((resolve, reject) => {
                 if (inputFile) {
                     const rs = fs.createReadStream(inputFile)
-                    rs.on('error', reject)
-                    return rs.pipe(ws)
+                    rs.once('error', reject)
+                    rs.once('close', () => resolve(ws))
+                    rs.pipe(ws)
                 }
-                ws.close()
-                return ws
             })
             .then((ws) => {
                 return new Promise((resolve, reject) => {
-                    ws.on('close', resolve)
-                    ws.on('error', reject)
+                    ws.once('close', () => resolve(tempFile))
+                    ws.once('error', reject)
                 })
             })
         })
