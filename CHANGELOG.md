@@ -1,3 +1,7 @@
+# Current master
+
+* use `wrote` [85430ae](https://github.com/Sobesednik/node-exiftool/commit/85430ae)
+
 <a name="2.1.2"></a>
 # [2.1.2](https://github.com/Sobesednik/node-exiftool/compare/v2.1.1...v2.1.2) (2017-5-14)
 
