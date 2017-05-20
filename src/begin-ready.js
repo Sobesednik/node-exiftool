@@ -2,44 +2,10 @@
 
 const Transform = require('stream').Transform
 const Writable = require('stream').Writable
+const restream = require('restream')
 
 const BEGIN_READY_RE = /{begin(\d+)}([\s\S]*){ready\1}/g
 
-/**
- * A transform stream which will maintain a buffer with data
- * received from incoming stream and push data when the buffer
- * can be matched againts the regex. Will push match object
- * returned by regex.exec.
- * @return {Transform} A transform stream, could  be piped into
- * BeginReady transform stream do construct a proper object.
- */
-function createRegexTransformStream(regex) {
-    let buffer = ''
-
-    const ts = new Transform({ objectMode: true })
-
-    // cannot be arrow function to call this.push
-    ts._transform = function (chunk, enc, next) {
-        let lastMatch
-        let match
-        buffer += chunk.toString()
-
-        // thx stream-snitch
-        // https://github.com/dmotz/stream-snitch/blob/master/index.js#L52
-        // eslint-disable-next-line no-cond-assign
-        while (match = regex.exec(buffer)) {
-            this.push(match)
-            lastMatch = match
-            if (!regex.global) break
-        }
-        if (lastMatch) {
-            buffer = buffer.slice(lastMatch.index + lastMatch[0].length)
-        }
-        next()
-    }
-
-    return ts
-}
 
 /**
  * A transform stream which will mutate data from regex stream into an object
@@ -106,7 +72,7 @@ function createResolverWriteStream() {
  * @return {Writable} A Resolve transform stream.
  */
 function setupResolveWriteStreamPipe(rs) {
-    const rts = createRegexTransformStream(BEGIN_READY_RE)
+    const rts = restream(BEGIN_READY_RE)
     const brmts = createBeginReadyMatchTransformStream()
     const rws = createResolverWriteStream()
 
@@ -114,7 +80,6 @@ function setupResolveWriteStreamPipe(rs) {
 }
 
 module.exports = {
-    createRegexTransformStream,
     createBeginReadyMatchTransformStream,
     createResolverWriteStream,
     BEGIN_READY_RE,

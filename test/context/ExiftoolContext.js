@@ -1,10 +1,11 @@
-const fs = require('fs')
-const path = require('path')
-const os = require('os')
+const assert = require('assert')
 const exiftoolBin = require('dist-exiftool')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+const wrote = require('wrote')
 const exiftool = require('../../src/index')
 const createWriteStream = require('./create-write-stream')
-const assert = require('assert')
 
 // exiftool will print "File not found: test/fixtures/no_such_file.jpg"
 // with forward slashes independent of platform
@@ -24,19 +25,24 @@ const filenameWithEncoding = path.join(testDir, fixturesDir, 'Fọto.jpg')
 function makeTempFile(inputFile, extension) {
     const n = Math.floor(Math.random() * 100000)
     const tempFile = path.join(os.tmpdir(), `node-exiftool_test_${n}.${extension}`)
-    return new Promise((resolve, reject) => {
-        const ws = fs.createWriteStream(tempFile)
-        ws.on('error', reject)
-        ws.on('close', () => {
-            resolve(tempFile)
+    return wrote(tempFile)
+        .then((ws) => {
+            return new Promise((resolve, reject) => {
+                if (inputFile) {
+                    const rs = fs.createReadStream(inputFile)
+                    rs.on('error', reject)
+                    return rs.pipe(ws)
+                }
+                ws.close()
+                return ws
+            })
+            .then((ws) => {
+                return new Promise((resolve, reject) => {
+                    ws.on('close', resolve)
+                    ws.on('error', reject)
+                })
+            })
         })
-        if (inputFile) {
-            const rs = fs.createReadStream(inputFile)
-            rs.on('error', reject)
-            return rs.pipe(ws)
-        }
-        return ws.close()
-    })
 }
 
 const unlinkTempFile = tempFile => new Promise((resolve, reject) =>

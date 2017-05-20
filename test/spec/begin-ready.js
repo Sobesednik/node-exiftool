@@ -1,5 +1,4 @@
 const beginReady = require('../../src/begin-ready')
-const createRegexTransformStream = beginReady.createRegexTransformStream
 const createBeginReadyMatchTransformStream = beginReady.createBeginReadyMatchTransformStream
 const createResolverWriteStream = beginReady.createResolverWriteStream
 const setupResolveWriteStreamPipe = beginReady.setupResolveWriteStreamPipe
@@ -82,73 +81,6 @@ ${s2}
     .trim()
 
 const brtsTestSuite = {
-    createRegexTransformStream: {
-        'should transform data': () => {
-            const regex = /{(\d+)}/
-            const input = '{12345}{67890}'
-            const rs = new Readable
-            rs._read = () => {
-                rs.push(input)
-                rs.push(null)
-            }
-            const rts = createRegexTransformStream(regex)
-
-            return new Promise((resolve, reject) => {
-                const ws = new Writable({ objectMode: true })
-                const data = []
-                ws._write = (chunk, enc, next) => {
-                    data.push(chunk)
-                    next()
-                }
-                ws.on('finish', () => { resolve(data) })
-                ws.on('error', reject)
-                rs.pipe(rts).pipe(ws)
-            })
-                .then((res) => {
-                    assert.equal(res.length, 1)
-                    const match = res[0]
-                    assert.equal(match[0], '{12345}')
-                    assert.equal(match[1], '12345')
-                    assert.equal(match.index, 0)
-                    assert.equal(match.input, input)
-                })
-        },
-        'should transform data with global flag': () => {
-            const regex = /{(\d+)}/g
-            const input = '{12345}{67890}'
-            const rs = new Readable
-            rs._read = () => {
-                rs.push(input)
-                rs.push(null)
-            }
-            const rts = createRegexTransformStream(regex)
-
-            return new Promise((resolve, reject) => {
-                const ws = new Writable({ objectMode: true })
-                const data = []
-                ws._write = (chunk, enc, next) => {
-                    data.push(chunk)
-                    next()
-                }
-                ws.on('finish', () => { resolve(data) })
-                ws.on('error', reject)
-                rs.pipe(rts).pipe(ws)
-            })
-                .then((res) => {
-                    assert.equal(res.length, 2)
-                    const match = res[0]
-                    const match2 = res[1]
-                    assert.equal(match[0], '{12345}')
-                    assert.equal(match[1], '12345')
-                    assert.equal(match.index, 0)
-                    assert.equal(match.input, input)
-                    assert.equal(match2[0], '{67890}')
-                    assert.equal(match2[1], '67890')
-                    assert.equal(match2.index, 7)
-                    assert.equal(match2.input, input)
-                })
-        },
-    },
     createBeginReadyMatchTransformStream: {
         'should transform match data': () => {
             const rs = new Readable({ objectMode: true })

@@ -13,7 +13,6 @@ function writeStdIn(proc, data, encoding) {
 
 function createWriteStream(filePath, options) {
     let errorRejectListener
-    let openResolveListener
     let writeStream
     const after = () => {
         writeStream.removeListener('error', errorRejectListener)
@@ -23,8 +22,7 @@ function createWriteStream(filePath, options) {
         errorRejectListener = reject
         writeStream = fs.createWriteStream(filePath, options || {})
         writeStream.on('error', errorRejectListener)
-        openResolveListener = () => resolve(writeStream)
-        writeStream.once('open', openResolveListener)
+        writeStream.once('open', () => resolve(writeStream))
     })
         .catch((err) => { after(); throw err } )
 }
