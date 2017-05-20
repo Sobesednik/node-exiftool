@@ -35,6 +35,6 @@
     "zoroaster": "0.4.3"
   },
   "dependencies": {
-    "restream": "1.0.0"
+    "restream": "1.0.1"
   }
 }
