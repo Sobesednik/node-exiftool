@@ -1,3 +1,8 @@
+<a name="2.1.5"></a>
+# [2.1.5](https://github.com/Sobesednik/node-exiftool/compare/v2.1.4...v2.1.5) (2017-5-20)
+
+* [bugfix] uptadte to `restream@1.0.1` (`use strcit` fix) [https://github.com/Sobesednik/node-exiftool/commit/6bb864b](6bb864b)
+
 <a name="2.1.4"></a>
 # [2.1.4](https://github.com/Sobesednik/node-exiftool/compare/v2.1.3...v2.1.4) (2017-5-20)
 
