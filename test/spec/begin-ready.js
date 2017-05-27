@@ -1,12 +1,11 @@
+const assert = require('assert')
+const Readable = require('stream').Readable
+const Writable = require('stream').Writable
+const Transform = require('stream').Transform
 const beginReady = require('../../src/begin-ready')
 const createBeginReadyMatchTransformStream = beginReady.createBeginReadyMatchTransformStream
 const createResolverWriteStream = beginReady.createResolverWriteStream
 const setupResolveWriteStreamPipe = beginReady.setupResolveWriteStreamPipe
-const Readable = require('stream').Readable
-const Writable = require('stream').Writable
-const Transform = require('stream').Transform
-
-const assert = require('assert')
 
 /**
  * Pipe Readable stream in object mode into process.stdout,

@@ -3,6 +3,7 @@ const assert = require('assert')
 const child_process = require('child_process')
 const context = require('exiftool-context')
 const exiftool = require('../../src/index')
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 const ChildProcess = child_process.ChildProcess
 const EOL = os.EOL

@@ -1,6 +1,8 @@
-const context = require('exiftool-context')
 const assert = require('assert')
 const EOL = require('os').EOL
+const context = require('exiftool-context')
+const exiftool = require('../../src/index')
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 const metadata = {
     all: '', // remove all metadata at first
