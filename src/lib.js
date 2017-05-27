@@ -1,3 +1,5 @@
+'use strict'
+
 const cp = require('child_process')
 const EOL = require('os').EOL
 
@@ -49,7 +51,7 @@ function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
 
     command = command !== undefined ? command : '';
 
-    [].concat(
+    const allArgs = [].concat(
         extendedArgsNoSplit,
         extendedArgs,
         ['-json', '-s'],
@@ -64,18 +66,15 @@ function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
             `-execute${commandNumber}`,
         ]
     )
-        .forEach(arg => writeStdIn(proc, arg, encoding))
+    if (process.env.DEBUG) {
+        console.log(JSON.stringify(allArgs, null, 2))
+    }
+    allArgs.forEach(arg => writeStdIn(proc, arg, encoding))
 }
 
-var previous = 0;
+let currentCommand = 0;
 function genCommandNumber() {
-    var date = Date.now();
-    if (date <= previous) {
-        date = ++previous;
-    } else {
-        previous = date;
-    }
-    return String(date);
+    return String(++currentCommand)
 }
 
 function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, encoding) {

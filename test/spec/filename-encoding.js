@@ -1,8 +1,11 @@
 'use strict'
 
-const context = require('exiftool-context')
 const assert = require('assert')
+const context = require('exiftool-context')
 const path = require('path')
+const exiftool = require('../../src/index')
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
+
 
 // thanks stackoverflow
 function toUnicode(theString) {
