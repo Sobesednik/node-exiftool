@@ -1,8 +1,8 @@
 const os = require('os')
 const assert = require('assert')
 const child_process = require('child_process')
+const context = require('exiftool-context')
 const exiftool = require('../../src/index')
-const context = require('../context/ExiftoolContext')
 
 const ChildProcess = child_process.ChildProcess
 const EOL = os.EOL
@@ -183,8 +183,11 @@ const exiftoolTestSuite = {
                 .then((res) => {
                     assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
-                    assert.equal(res.data[0].SourceFile, 'test/fixtures/CANON/IMG_9858.JPG')
-                    assert.equal(res.data[0].Orientation, 6)
+                    const expected = {
+                        SourceFile: ctx.replaceSlashes(ctx.jpegFile),
+                        Orientation: 6,
+                    }
+                    assert.deepEqual(res.data[0], expected)
                 })
         },
         'reads metadata of a file': (ctx) => {
@@ -192,10 +195,11 @@ const exiftoolTestSuite = {
                 .then((res) => {
                     assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
+                    const metaData = res.data[0]
                     const expected = {
-                        SourceFile: 'test/fixtures/CANON/IMG_9858.JPG',
+                        SourceFile: ctx.replaceSlashes(ctx.jpegFile),
+                        Directory: ctx.replaceSlashes(ctx.folder),
                         FileName: 'IMG_9858.JPG',
-                        Directory: 'test/fixtures/CANON',
                         FileSize: '52 kB',
                         FileType: 'JPEG',
                         FileTypeExtension: 'jpg',

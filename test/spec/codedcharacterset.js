@@ -1,4 +1,4 @@
-const context = require('../context/ExiftoolContext')
+const context = require('exiftool-context')
 const assert = require('assert')
 const EOL = require('os').EOL
 
