@@ -27,6 +27,9 @@ function createDisplayStream(displayFunction) {
  * @return {string} A formatted string showing how long it took to process the file.
  */
 function getObjectPrint(obj) {
+    if (obj.file instanceof Readable) {
+        return `${obj.file.path}: ${obj.time}ms`
+    }
     return `${obj.file}: ${obj.time}ms`
 }
 
