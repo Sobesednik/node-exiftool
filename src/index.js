@@ -3,6 +3,8 @@
 const EventEmitter = require('events')
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
+const Readable = require('stream').Readable
+const executeWithRs = require('./execute-with-rs')
 
 const EXIFTOOL_PATH = 'exiftool'
 
@@ -122,13 +124,16 @@ class ExiftoolProcess extends EventEmitter {
 
     /**
      * Read metadata of a file or directory.
-     * @param {string} file - path to the file or directory
+     * @param {string|Readable} file - path to the file or directory
      * @param {Array} args - any additional arguments, e.g.,
      * ['Orientation#'] to report Orientation only, or ['-FileSize'] to exclude FileSize
      * @returns {Promise} a promise resolved with data (array or null) and error
      * (string or null) properties from stdout and stderr of exiftool.
      */
     readMetadata(file, args) {
+        if (file instanceof Readable) {
+            return executeWithRs(file, args, this._executeCommand.bind(this))
+        }
         return this._executeCommand(file, args)
     }
 

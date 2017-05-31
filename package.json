@@ -23,18 +23,20 @@
     "IPTC",
     "XMP"
   ],
-  "author": "Anton @ Sobesednik.Media",
+  "author": "Anton <anton@sobesednik.media>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Sobesednik/node-exiftool/issues"
   },
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
-    "cross-env": "3.1.3",
+    "cross-env": "5.0.0",
     "exiftool-context": "1.1.1",
-    "zoroaster": "0.4.4"
+    "makepromise": "1.0.0",
+    "zoroaster": "0.4.6"
   },
   "dependencies": {
-    "restream": "1.0.1"
+    "restream": "1.2.0",
+    "wrote": "0.4.0"
   }
 }
