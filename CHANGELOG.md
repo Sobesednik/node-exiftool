@@ -1,3 +1,9 @@
+<a name="2.2.0"></a>
+# [2.2.0](https://github.com/Sobesednik/node-exiftool/compare/v2.1.6...v2.2.0) (2017-5-31)
+
+* [feature] read metadata from a Readable ([d027861](https://github.com/Sobesednik/node-exiftool/commit/d027861))
+* [benchmark] update to use `exiftool-context` and test `Readable` speed ([733ff4e](https://github.com/Sobesednik/node-exiftool/commit/733ff4e))
+
 <a name="2.1.6"></a>
 # [2.1.6](https://github.com/Sobesednik/node-exiftool/compare/v2.1.5...v2.1.6) (2017-5-28)
 
