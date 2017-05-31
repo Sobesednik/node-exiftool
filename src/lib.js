@@ -4,6 +4,7 @@ const cp = require('child_process')
 const EOL = require('os').EOL
 const fs = require('fs')
 const Writable = require('stream').Writable
+const wrote = require('wrote')
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -27,38 +28,23 @@ function createWriteStream(filePath, options) {
         .catch((err) => { after(); throw err } )
 }
 
-function writeClose(proc, writable) {
-    return new Promise((resolve) => {
-        proc.on('close', resolve)
-        writable.write('-stay_open')
-        writable.write(EOL)
-        writable.write('false')
-        writable.write(EOL)
-    })
-}
-
 /**
  * Send close command, either to a process's stdin, or write to a file
  */
 function close(proc, writeStream) {
-    if (writeStream instanceof Writable && writeStream.writable) {
-        return writeClose(proc, writeStream)
-    }
+    const writeProc = (writeStream instanceof Writable && writeStream.writable)
+        ? { stdin: writeStream }
+        : proc
     return new Promise((resolve) => {
         proc.on('close', resolve)
-        writeStdIn(proc, '-stay_open')
-        writeStdIn(proc, 'false')
+        writeStdIn(writeProc, '-stay_open')
+        writeStdIn(writeProc, 'false')
     })
 }
 
 function closeWritable(writeStream) {
     if (writeStream instanceof Writable && writeStream.writable) {
-        return new Promise(resolve => {
-            writeStream.once('finish', () => {
-                resolve(writeStream)
-            })
-            writeStream.end()
-        })
+        return wrote.erase(writeStream)
     }
     return Promise.resolve()
 }
@@ -126,11 +112,11 @@ function genCommandNumber() {
     return String(date);
 }
 
-function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, encoding) {
+function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, encoding, debug) {
     const commandNumber = genCommandNumber()
 
-    if (proc === process) { // debugging
-        execute(proc, command, commandNumber, args, noSplitArgs, encoding)
+    if (debug === true) { // debugging
+        execute(process, command, commandNumber, args, noSplitArgs, encoding)
         return Promise.resolve({ data: 'debug', error: null })
     }
 

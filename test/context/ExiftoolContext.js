@@ -4,6 +4,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const wrote = require('wrote')
+const makePromise = require('makepromise')
 const exiftool = require('../../src/index')
 const createWriteStream = require('./create-write-stream')
 
@@ -33,20 +34,17 @@ function makeTempFile(inputFile, extension) {
                     rs.once('error', reject)
                     rs.once('close', () => resolve(ws))
                     rs.pipe(ws)
+                } else {
+                    resolve(ws)
                 }
             })
             .then((ws) => {
-                return new Promise((resolve, reject) => {
-                    ws.once('close', () => resolve(tempFile))
-                    ws.once('error', reject)
-                })
+                return makePromise(ws.end.bind(ws), null, tempFile)
             })
         })
 }
 
-const unlinkTempFile = tempFile => new Promise((resolve, reject) =>
-    fs.unlink(tempFile, err => (err ? reject(err) : resolve(tempFile)))
-)
+const unlinkTempFile = tempFile => makePromise(fs.unlink, tempFile, tempFile)
 
 function assertJpegMetadata(file) {
     const mask = {
@@ -154,25 +152,19 @@ const context = function Context() {
                 })
         }},
         writeToDataFile: { value: function writeToDataFile(data) {
-            if (!this._dataFile) {
+            if (!this.dataFile) {
                 return Promise.reject(new Error('Data file is not available.'))
             }
-            return createWriteStream(this._dataFile, {
-                flags: 'a',
-            })
+            return wrote(this.dataFile)
                 .then((ws) => {
                     this._ws = ws
                 })
-                .then(() => {
-                    return new Promise(resolve => {
-                        this._ws.write(data, resolve)
-                    })
-                })
-                .then(() => {
-                    return new Promise(resolve => {
-                        this._ws.end(resolve)
-                    })
-                })
+            // return createWriteStream(this._dataFile, {
+                // flags: 'a',
+            // })
+                .then((ws) => { this._ws = ws })
+                .then(() => makePromise(this._ws.write.bind(this._ws), data))
+                .then(() => makePromise(this._ws.end.bind(this._ws)))
         }},
         _destroy: { value: () => {
             console.log('destroy')

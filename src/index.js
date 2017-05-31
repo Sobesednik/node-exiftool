@@ -8,6 +8,7 @@ const Writable = require('stream').Writable
 const createWriteStream = lib.createWriteStream
 const path = require('path')
 const os = require('os')
+const wrote = require('wrote')
 
 
 const EXIFTOOL_PATH = 'exiftool'
@@ -83,13 +84,22 @@ class ExiftoolProcess extends EventEmitter {
         if (this._open) {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
-        this._fileInput = lib.isString(fileInput) ? fileInput : undefined
-        const fileInputPromise = this._fileInput ? createWriteStream(this._fileInput, {
-            flags: 'a',
-        }).then((ws) => {
-            this._ws = ws
-        }) : Promise.resolve()
-        return fileInputPromise
+        let inputPromise = Promise.resolve()
+        if (typeof fileInput === 'string') {
+            inputPromise = wrote(fileInput)
+                .then((ws) => {
+                    this._ws = ws
+                    this._fileInput = ws.path
+                })
+        } else if (fileInput === true) {
+            inputPromise = wrote()
+                .then((ws) => {
+                    this._ws = ws
+                    this._fileInput = ws.path
+                })
+        }
+        return inputPromise
+            .then(() => inputPromise)
             .then(() => lib.spawn(this._bin, this._fileInput))
             .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
@@ -156,7 +166,7 @@ class ExiftoolProcess extends EventEmitter {
             stdin: this._ws,
         } : null
         return lib.executeCommand(fileInputProc ? fileInputProc : proc, this._stdoutResolveWs,
-            this._stderrResolveWs,command, args, argsNoSplit, this._encoding)
+            this._stderrResolveWs,command, args, argsNoSplit, this._encoding, debug)
     }
 
     /**
@@ -172,18 +182,17 @@ class ExiftoolProcess extends EventEmitter {
     }
 
     readMetadataFromStream(rs, args, debug) {
-        const file = path.join(os.tmpdir(), 'node-exiftool_test_temp')
-        let closePromise
         let result
-        return lib.createWriteStream(file)
+        let writeStream
+        return wrote()
             .then((ws) => {
-                closePromise = new Promise(r => ws.on('close', r))
-                rs.pipe(ws)
-                return this._executeCommand(file, args, [], debug)
+                writeStream = ws
+                rs.pipe(writeStream)
+                return this._executeCommand(writeStream.path, args, [], debug)
             })
             .then((res) => {
                 result = res
-                return closePromise
+                return wrote.erase(writeStream)
             })
             .then(() => result)
     }

@@ -104,8 +104,11 @@ const libTestSuite = {
                 rs.once('open', resolve)
                 rs.once('error', reject)
             })
-                // .then(() => ctx.createDataFile(null, 'data'))
-                .then(() => ctx.open('utf8', null, true))
+                .then(() => ctx.createDataFile(null, 'data'))
+                .then(() => {
+                    console.log(ctx.dataFile)
+                    return ctx.open('utf8', ctx.dataFile, true)
+                })
                 .then(() => {
                     console.log('data file: %s', ctx.dataFile)
                     // lib.execute(process, '-', '123')
@@ -113,7 +116,7 @@ const libTestSuite = {
                     //     stdin: ctx.ep._ws,
                     // }, '-', '123')
                     // return new Promise(r => setTimeout(r, 200))
-                    return ctx.ep.readMetadataFromStream(rs)
+                    return ctx.ep.readMetadataFromStream(rs, null, true)
                 })
                 .then((res) => {
                     console.log(res)
