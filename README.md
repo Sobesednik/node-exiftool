@@ -51,43 +51,7 @@ const exiftoolBin = require('dist-exiftool')
 const ep = new exiftool.ExiftoolProcess(exiftoolBin)
 ```
 
-### Writing Metadata
-
-You can write metadata with `node-exiftool`. The API is:
-`ep.writeMetadata(file:string, data:object, args:array)`,
-where `file` is a path to the file, `data` is metadata to add, e.g.,
-
-```javascript
-const data = {
-  all: '',
-  comment: 'Exiftool rules!', // has to come after `all` in order not to be removed
-  'Keywords+': [ 'keywordA', 'keywordB' ],
-}
-```
-
-and `args` is an array of any other arguments you wish to pass, e.g,. `['overwrite_original']`.
-
-```javascript
-const exiftool = require('node-exiftool')
-const ep = new exiftool.ExiftoolProcess()
-
-ep
-  .open()
-  .then(() => ep.writeMetadata('destination.jpg', {
-    all: '', // remove existing tags
-    comment: 'Exiftool rules!',
-    'Keywords+': [ 'keywordA', 'keywordB' ],
-  }, ['overwrite_original']))
-  .then(console.log, console.error)
-  .then(() => ep.close())
-  .catch(console.error)
-```
-
-```javascript
-{ data: null, error: '1 image files updated' }
-```
-
-### Reading Single File
+### Reading Metadata
 
 You are required to open the *exiftool* process first, after which you will be able to
 read and write metadata.
@@ -138,6 +102,83 @@ Started exiftool process 29671
        Megapixels: 0.167 } ],
   error: null }
 Closed exiftool
+```
+
+### Reading Metadata from a Stream
+
+You can read metadata from a stream the same way you read a file metadata. `node-exiftool`
+will create a temp file and pipe your Readable into it, then pass the path to `exiftool`.
+After the result is got from `exiftool`, the temp file is removed.
+
+```js
+const exiftoolBin = require('dist-exiftool')
+const exiftool =  require('exiftool')
+const fs = require('fs')
+const path = require('path')
+
+const ep = new exiftool.ExiftoolProcess(exiftoolBin)
+ep.open()
+    .then(() => {
+        const rs = fs.createReadStream(path.join(__dirname, 'photo.jpg'))
+        return ep.readMetadata(rs, ['-File:all'])
+    })
+    .then((res) => {
+        console.log(res)
+    })
+    .then(() => ep.close(), () => ep.close())
+    .catch(console.error)
+```
+
+```fs
+{ data:
+   [ { SourceFile: '/var/folders/s0/truth-covered-in-security/T/wrote-44788.data',
+       ExifToolVersion: 10.53,
+       XResolution: 72,
+       YResolution: 72,
+       ResolutionUnit: 'inches',
+       YCbCrPositioning: 'Centered',
+       Copyright: 'sobesednik.media 2017',
+       XMPToolkit: 'Image::ExifTool 10.40',
+       Author: 'Author <author@sobes.io>',
+       ImageSize: '362x250',
+       Megapixels: 0.09 } ],
+  error: null }
+```
+
+### Writing Metadata
+
+You can write metadata with `node-exiftool`. The API is:
+`ep.writeMetadata(file:string, data:object, args:array)`,
+where `file` is a path to the file, `data` is metadata to add, e.g.,
+
+```javascript
+const data = {
+  all: '',
+  comment: 'Exiftool rules!', // has to come after `all` in order not to be removed
+  'Keywords+': [ 'keywordA', 'keywordB' ],
+}
+```
+
+and `args` is an array of any other arguments you wish to pass, e.g,. `['overwrite_original']`.
+
+```javascript
+const exiftool = require('node-exiftool')
+const ep = new exiftool.ExiftoolProcess()
+
+ep
+  .open()
+  .then(() => ep.writeMetadata('destination.jpg', {
+    all: '', // remove existing tags
+    comment: 'Exiftool rules!',
+    'Keywords+': [ 'keywordA', 'keywordB' ],
+  }, ['overwrite_original']))
+  .then(console.log, console.error)
+  .then(() => ep.close())
+  .catch(console.error)
+```
+
+```javascript
+{ data: null, error: '1 image files updated' }
 ```
 
 ### Reading Directory
