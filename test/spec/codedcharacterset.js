@@ -1,7 +1,7 @@
 const assert = require('assert')
 const EOL = require('os').EOL
 const context = require('exiftool-context')
-const exiftool = require('../../src/index')
+const exiftool = require('../../src/')
 context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 const metadata = {

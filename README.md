@@ -51,6 +51,28 @@ const exiftoolBin = require('dist-exiftool')
 const ep = new exiftool.ExiftoolProcess(exiftoolBin)
 ```
 
+### Passing Options
+
+`exiftool` will be open with `child_process.spawn`, and you can specify options
+object which will passed to the `spawn` method.
+
+```javascript
+const exiftool = require('node-exiftool')
+const options = {
+  detached: true,
+  env: Object.assign({}, process.env, {
+    ENVIRONMENT_VARIABLE: 1,
+  }),
+}
+const ep = new exiftool.ExiftoolProcess()
+
+ep
+  .open(options)
+  .then(() => ep.close())
+  .then(() => console.log('Closed exiftool'))
+  .catch(console.error)
+```
+
 ### Reading Metadata
 
 You are required to open the *exiftool* process first, after which you will be able to
@@ -410,7 +432,7 @@ exiftool process exited
 ### Stream encoding
 
 By default, `setEncoding('utf8')` will be called on `stdout` and `stderr` streams, and `stdin` will
-be written with `utf8` encoding (this is Node's deafult on a Mac at least). If you wish to use
+be written with `utf8` encoding (this is Node's default on a Mac at least). If you wish to use
 system's default encoding, pass `null` when opening the process. If you want to set some other
 encoding, specify it as a string. [Check here](https://github.com/nodejs/node/blob/master/lib/net.js#L789)
 for Node's supported encodings.
@@ -612,6 +634,22 @@ Average time: 34.36ms
 
 Exiftool Open was faster by 471%
 ```
+
+## Testing
+
+We're using [`exiftool-context`](https://www.npmjs.com/package/exiftool-context)
+to test with [`zoroaster`](https://www.npmjs.com/package/zoroaster).
+
+Make sure to do the following in tests, when testing current version:
+
+```js
+const context = require('exiftool-context')
+const exiftool = require('../../src/')
+
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
+```
+
+Otherwise, the context will use a stable version which it install independently.
 
 ## Metadata
 

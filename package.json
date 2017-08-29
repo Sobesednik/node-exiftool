@@ -31,12 +31,13 @@
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
     "cross-env": "5.0.0",
-    "exiftool-context": "1.1.1",
+    "exiftool-context": "1.3.1",
     "makepromise": "1.0.0",
     "zoroaster": "0.4.6"
   },
   "dependencies": {
+    "is-stream": "1.1.0",
     "restream": "1.2.0",
-    "wrote": "0.4.0"
+    "wrote": "0.6.1"
   }
 }
