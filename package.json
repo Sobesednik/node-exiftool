@@ -31,8 +31,9 @@
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
     "cross-env": "5.0.0",
-    "exiftool-context": "1.3.1",
+    "exiftool-context": "1.4.0",
     "makepromise": "1.0.0",
+    "ps-node": "0.1.6",
     "zoroaster": "0.4.6"
   },
   "dependencies": {
