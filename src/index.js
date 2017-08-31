@@ -4,7 +4,6 @@ const EventEmitter = require('events')
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
 const executeWithRs = require('./execute-with-rs')
-const Writable = require('stream').Writable
 
 const EXIFTOOL_PATH = 'exiftool'
 
@@ -54,10 +53,12 @@ class ExiftoolProcess extends EventEmitter {
     }
     /**
      * Spawn exiftool process with -stay_open True -@ - arguments.
-     * @param {string} [encoding=utf8] Encoding with which to read from and
+     * Options can be passed as the first argument instead of encoding.
+     * @param {string} [encoding="utf8"] Encoding with which to read from and
      * write to streams. pass null to not use encoding, utf8 otherwise
      * @param {object} [options] options to pass to the spawn method
-     * @returns {Promise.<number>} A promise to spawn exiftool in stay_open mode.
+     * @returns {Promise.<number>} A promise to spawn exiftool in stay_open
+     * mode, resolved with pid.
      */
     open(encoding, options) {
         let _encoding = encoding

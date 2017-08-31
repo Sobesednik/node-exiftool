@@ -73,6 +73,31 @@ ep
   .catch(console.error)
 ```
 
+Since passing options is available, a check will be made to make sure that
+`stderr` and `stdout` streams are readable, and `stdin` is writable. Therefore,
+you cannot pass `{ stdio: 'ignore' }` as an option.
+
+#### Using Detached mode on Windows
+
+You can spawn exiftool with `{ detached: true }` option if you need to manually
+handle it's exit independent of your application. On Linux, the new process
+will be made a leader of its process group, and will not quit with the Node
+app. On Windows, the process will not quit either, however, there will be 2
+`exiftool` processes: one returned by the `child_process.spawn` method, and
+a second one, started by exiftool itself.
+
+```powershell
+Image Name                     PID Session Name        Session#    Mem Usage
+========================= ======== ================ =========== ============
+exiftool.exe                  2700 Console                    1      4,708 K
+exiftool.exe                  3028 Console                    1     28,168 K
+```
+
+Because Windows will throw an error when trying to kill a process group by passing `-pid` to `process.kill`, you should find the second exiftool process
+by its parent pid (returned with `ep.open()`), and kill it manually, e.g., with
+`cp.exec('taskkill /F /T /PID ${pid}')`. Check the
+[`detached-true` test](test/spec/detached-true.js) for more insight.
+
 ### Reading Metadata
 
 You are required to open the *exiftool* process first, after which you will be able to
