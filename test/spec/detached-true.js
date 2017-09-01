@@ -5,6 +5,9 @@ const path = require('path')
 const makepromise = require('makepromise')
 const ps = require('ps-node')
 const assert = require('assert')
+const debuglog = require('util').debuglog('detached')
+
+const context = require('../context/detached')
 
 const detachedModulePath = path.join(__dirname, '../fixtures/detached.js')
 
@@ -39,30 +42,8 @@ function killPid(pid) {
     })
 }
 
-function killFork(proc, withGroup) {
-    return new Promise((resolve, reject) => {
-        proc.once('exit', resolve)
-        try {
-            process.kill(withGroup ? -proc.pid : proc.pid)
-        } catch(err) {
-            reject(err)
-        }
-    })
-}
-
 const checkPid = pid => makepromise(ps.lookup, { pid })
 const checkPpid = ppid => makepromise(ps.lookup, { ppid })
-
-const createProc = detached => cp.fork(detachedModulePath, [], {
-     // not doing this will not allow debugging, as fork will try to connect
-     // to the same debug port as parent
-    execArgv: [],
-    // make fork start in a new group, so it can be killed with its children
-    detached: true,
-    env: Object.assign({}, process.env, {
-        DETACHED: !!detached,
-    }),
-})
 
 /**
  * @typedef {Object} PSRes
@@ -135,56 +116,59 @@ const setup = (detached) => {
     let epPid
     let checkPids
 
-    const fork = createProc(detached)
+    const fork = context.createFork(detachedModulePath, true, detached ? {
+        EXIFTOOL_DETACHED: true,
+    } : {})
 
     return createMessagePromise(fork)
         .then((res) => {
             epPid = res
-            return checkPpid(epPid) // find child exiftool on windows by parent pid
+            return { res, fork }
+            // return checkPpid(epPid) // find child exiftool on windows by parent pid
         })
-        .then((res) => {
-            // this step is to find conhost on Windows
-            if (!isWindows) return res
-            // if not detached, conhost is child of parent exiftool
-            if (!detached) return res
-            // if detached, conhost is child of child exiftool
-            const childExiftool = res[0]
-            assert(childExiftool)
-            assert(/exiftool\.exe/.test(childExiftool.command))
-            return checkPpid(childExiftool.pid).then((conhostRes) => {
-                const conhost = conhostRes[0]
-                assert(conhost)
-                assert(/conhost.exe/.test(conhost.command))
-                const all = [].concat(conhostRes, res)
-                return all
-            })
-        })
-        .then((res) => {
-            let epChildPid
-            let conhostPid
-            if (isWindows) {
-                assert.equal(res.length, 2)
-                const conhost = res.find(p => /conhost\.exe/.test(p.command))
-                assert(conhost, 'conhost.exe should have been started as child of exiftool')
-                conhostPid = conhost.pid
-                const epChild = res.find(p => /exiftool\.exe/.test(p.command))
-                assert(epChild, 'exiftool.exe should have been started as child of exiftool')
-                epChildPid = epChild.pid
-            } else {
-                assert(!res.length, 'Child exiftool should not have been found on Unix')
-            }
-            checkPids = createCheckPids(fork.pid, epPid, epChildPid, conhostPid)
-            return checkPids()
-        })
-        .then((res) => {
-            assert(res.fork)
-            assert(res.ep)
-            if (isWindows) {
-                assert(res.epChild)
-                assert(res.conhost)
-            }
-            return { checkPids, fork }
-        })
+        // .then((res) => {
+        //     // this step is to find conhost on Windows
+        //     if (!isWindows) return res
+        //     // if not detached, conhost is child of parent exiftool
+        //     if (!detached) return res
+        //     // if detached, conhost is child of child exiftool
+        //     const childExiftool = res[0]
+        //     assert(childExiftool)
+        //     assert(/exiftool\.exe/.test(childExiftool.command))
+        //     return checkPpid(childExiftool.pid).then((conhostRes) => {
+        //         const conhost = conhostRes[0]
+        //         assert(conhost)
+        //         assert(/conhost.exe/.test(conhost.command))
+        //         const all = [].concat(conhostRes, res)
+        //         return all
+        //     })
+        // })
+        // .then((res) => {
+        //     let epChildPid
+        //     let conhostPid
+        //     if (isWindows) {
+        //         assert.equal(res.length, 2)
+        //         const conhost = res.find(p => /conhost\.exe/.test(p.command))
+        //         assert(conhost, 'conhost.exe should have been started as child of exiftool')
+        //         conhostPid = conhost.pid
+        //         const epChild = res.find(p => /exiftool\.exe/.test(p.command))
+        //         assert(epChild, 'exiftool.exe should have been started as child of exiftool')
+        //         epChildPid = epChild.pid
+        //     } else {
+        //         assert(!res.length, 'Child exiftool should not have been found on Unix')
+        //     }
+        //     checkPids = createCheckPids(fork.pid, epPid, epChildPid, conhostPid)
+        //     return checkPids()
+        // })
+        // .then((res) => {
+        //     assert(res.fork)
+        //     assert(res.ep)
+        //     if (isWindows) {
+        //         assert(res.epChild)
+        //         assert(res.conhost)
+        //     }
+        //     return { checkPids, fork }
+        // })
 }
 
 const createTestWin = (detached) => {
@@ -193,7 +177,7 @@ const createTestWin = (detached) => {
         return setup(detached)
             .then((meta) => {
                 checkPids = meta.checkPids
-                return killFork(meta.fork).then(checkPids)
+                return context.killFork(meta.fork).then(checkPids)
             })
             .then((res) => {
                 assert(!res.fork, 'Node fork should have quit')
@@ -214,27 +198,29 @@ const createTestWin = (detached) => {
 }
 
 const createTest = (detached) => {
-    const test = () => {
+    const test = (ctx) => {
         let checkPids
         return setup(detached)
             .then((meta) => {
-                checkPids = meta.checkPids
-                const ps = cp.execSync('ps xao pid,ppid,pgid,stat,sess,tt,command | grep \'node\\|perl\' | grep -v \'chrome\\|Visual\'')
-                console.log(String(ps))
-                console.log('going to kill by pgid %s', -meta.fork.pid)
-                return killFork(meta.fork, true).then(checkPids)
+                // checkPids = meta.checkPids
+                debuglog('after setup')
+                debuglog('======')
+                return ctx.ps().then(() => {
+                    debuglog('======')
+                    debuglog('going to kill by pgid %s', meta.res)
+                    return context.killFork(meta.fork, true)//.then(checkPids)
+                })
             })
-            .then((res) => {
-                assert(!res.fork, 'Node fork should have quit')
+            // .then((res) => {
+            //     assert(!res.fork, 'Node fork should have quit')
 
-                if (detached) {
-                    assert(res.ep, 'Exiftool parent should stay open')
-                    return killPid(res.ep.pid)
-                } else {
-                    assert(!res.ep, 'Exiftool parent should have quit')
-                }
-            })
-
+            //     if (detached) {
+            //         assert(res.ep, 'Exiftool parent should stay open')
+            //         return killPid(res.ep.pid)
+            //     } else {
+            //         assert(!res.ep, 'Exiftool parent should have quit')
+            //     }
+            // })
     }
     return test
 }
@@ -243,11 +229,12 @@ const DetachedTrueTestSuite = {}
 
 if (isWindows) {
     Object.assign(DetachedTrueTestSuite, {
-        'should quit child process when fork exits without detached option (win)': createTestWin(),
-        'should not quit child process when fork exits with detached option (win)': createTestWin(true),
+        // 'should quit child process when fork exits without detached option (win)': createTestWin(),
+        // 'should not quit child process when fork exits with detached option (win)': createTestWin(true),
     })
 } else {
     Object.assign(DetachedTrueTestSuite, {
+        context,
         // Also note: on Linux, child processes of child processes will not be terminated when attempting to kill their parent.
         // kill detached fork by passing -pid (i.e., pgid)
         // https://nodejs.org/api/child_process.html#child_process_subprocess_kill_signal

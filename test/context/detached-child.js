@@ -23,16 +23,15 @@ debuglog('exiftool detached: %s', EXIFTOOL_DETACHED)
 //         debuglog('exiftool pid: %s', pid)
 //         ep._process.unref()
 
-
 context.ps(['node', 'perl', 'npm'], ['Visual'])
-.then((r) => {
-    debuglog('after starting fork')
-    debuglog('======')
-    debuglog(`\n${r}`)
-    debuglog('======')
-    process.send(process.pid)
-    while (true) {}
-})
+    .then((r) => {
+        debuglog('after starting (context) fork')
+        debuglog('======')
+        debuglog(`\n${r}`)
+        debuglog('======')
+        process.send(process.pid)
+        while (true) {}
+    })
 
 //     })
 //     .catch((err) => {
