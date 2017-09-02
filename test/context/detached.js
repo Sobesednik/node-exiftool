@@ -5,7 +5,7 @@ const path = require('path')
 
 const MODULE_PATH = path.join(__dirname, './detached-child.js')
 
-const createFork = (modulePath, detached, env) => cp.spawn('node', [modulePath], {
+const createFork = (modulePath, detached, env) => cp.spawn(process.argv[0], [modulePath], {
     detached,
     // not doing this will not allow debugging, as fork will try to connect
     // to the same debug port as parent
