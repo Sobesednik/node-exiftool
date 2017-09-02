@@ -1,11 +1,12 @@
 'use strict'
 const assert = require('assert')
-const exiftool = require('../../src/')
 const context = require('exiftool-context')
-context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 const fs = require('fs')
 const makepromise = require('makepromise')
+const exiftool = require('../../src/')
 const executeWithRs = require('../../src/execute-with-rs')
+
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 const readFromStreamTestSuite = {
     context,

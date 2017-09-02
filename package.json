@@ -7,7 +7,7 @@
     "src/"
   ],
   "scripts": {
-    "test": "cross-env ZOROASTER_TIMEOUT=10000 zoroaster test/spec",
+    "test": "cross-env NODE_DEBUG=detached ZOROASTER_TIMEOUT=10000 zoroaster test/spec",
     "test-watch": "zoroaster test/spec --watch",
     "bench": "node benchmark/run",
     "callback-example": "LOCAL=1 node examples/callback examples/28.jpg",
@@ -31,12 +31,14 @@
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
     "cross-env": "5.0.0",
-    "exiftool-context": "1.1.1",
+    "exiftool-context": "1.4.0",
     "makepromise": "1.0.0",
+    "ps-node": "0.1.6",
     "zoroaster": "0.4.6"
   },
   "dependencies": {
+    "is-stream": "1.1.0",
     "restream": "1.2.0",
-    "wrote": "0.4.0"
+    "wrote": "0.6.1"
   }
 }
