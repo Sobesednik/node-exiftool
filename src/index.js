@@ -3,7 +3,6 @@
 const EventEmitter = require('events')
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
-const Readable = require('stream').Readable
 const executeWithRs = require('./execute-with-rs')
 
 const EXIFTOOL_PATH = 'exiftool'
@@ -14,10 +13,9 @@ const events = {
 }
 
 class ExiftoolProcess extends EventEmitter {
-
     /**
-     * Create an instance of ExoftoolProcess class.
-     * @param {string} [exiftool] - path to executable
+     * Create an instance of ExiftoolProcess class.
+     * @param {string} [bin="exiftool"] path to executable
      */
     constructor(bin) {
         super()
@@ -54,35 +52,54 @@ class ExiftoolProcess extends EventEmitter {
         this._encoding = _encoding
     }
     /**
-     * Spawn exfitool process with -stay_open True -@ - arguments.
-     * @returns {Promise} a promise to spawn exiftool in stay_open mode.
-     * @param {string} [encoding=utf8] - encoding with which to read from and write to streams.
-     * pass null to not use encoding, utf8 otherwise
+     * Spawn exiftool process with -stay_open True -@ - arguments.
+     * Options can be passed as the first argument instead of encoding.
+     * @param {string} [encoding="utf8"] Encoding with which to read from and
+     * write to streams. pass null to not use encoding, utf8 otherwise
+     * @param {object} [options] options to pass to the spawn method
+     * @returns {Promise.<number>} A promise to spawn exiftool in stay_open
+     * mode, resolved with pid.
      */
-    open(encoding) {
-        this._assignEncoding(encoding)
+    open(encoding, options) {
+        let _encoding = encoding
+        let _options = options
+        // if encoding is not a string and options are not given, treat it as options
+        if (options === undefined && typeof encoding !== 'string') {
+            _encoding = undefined
+            _options = encoding
+        }
+        this._assignEncoding(_encoding)
         if (this._open) {
             return Promise.reject(new Error('Exiftool process is already open'))
         }
-        return lib.spawn(this._bin)
+        return lib.spawn(this._bin, _options)
             .then((exiftoolProcess) => {
                 //console.log(`Started exiftool process %s`, process.pid);
                 this.emit(events.OPEN, exiftoolProcess.pid)
                 this._process = exiftoolProcess
 
-                exiftoolProcess.on('exit', this._exitListener.bind(this))
-
-                // resolve write streams
-                if (this._encoding) {
-                    exiftoolProcess.stdout.setEncoding(this._encoding)
-                    exiftoolProcess.stderr.setEncoding(this._encoding)
+                this._process.on('exit', this._exitListener.bind(this))
+                if (!lib.isReadable(this._process.stdout)) {
+                    lib.killProcess(this._process)
+                    throw new Error('Process was not spawned with a readable stdout, check stdio options.')
                 }
-                this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stdout)
-                this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(exiftoolProcess.stderr)
+                if (!lib.isWritable(this._process.stdin)) {
+                    lib.killProcess(this._process)
+                    throw new Error('Process was not spawned with a writable stdin, check stdio options.')
+                }
 
-                // handle erros so that Node does not crash
-                this._stdoutResolveWs.on('error', console.error)
-                this._stderrResolveWs.on('error', console.error)
+                // if process was spawned, stderr is readable (see lib/spawn)
+
+                this._process.stdout.setEncoding(this._encoding)
+                this._process.stderr.setEncoding(this._encoding)
+
+                // resolve-write streams
+                this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stdout)
+                this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stderr)
+
+                // handle errors so that Node does not crash
+                this._stdoutResolveWs.on('error', console.error) // eslint-disable-line no-console
+                this._stderrResolveWs.on('error', console.error) // eslint-disable-line no-console
 
                 // debug
                 // exiftoolProcess.stdout.pipe(process.stdout)
@@ -95,9 +112,9 @@ class ExiftoolProcess extends EventEmitter {
     }
 
     _exitListener() {
-        //console.log('exfitool process exit');
+        //console.log('exiftool process exit');
         this.emit(events.EXIT)
-        this._open = false // try to respawn?
+        this._open = false // try to re-spawn?
     }
 
     /**
@@ -124,14 +141,15 @@ class ExiftoolProcess extends EventEmitter {
 
     /**
      * Read metadata of a file or directory.
-     * @param {string|Readable} file - path to the file or directory
-     * @param {Array} args - any additional arguments, e.g.,
-     * ['Orientation#'] to report Orientation only, or ['-FileSize'] to exclude FileSize
-     * @returns {Promise} a promise resolved with data (array or null) and error
-     * (string or null) properties from stdout and stderr of exiftool.
+     * @param {string|Readable} file path to the file or directory, or a
+     * readable stream
+     * @param {string[]} args any additional arguments, e.g., ['Orientation#']
+     * to report Orientation only, or ['-FileSize'] to exclude FileSize
+     * @returns {Promise.<{data: object[]|null, error: string|null}>} a promise
+     * resolved with parsed stdout and stderr.
      */
     readMetadata(file, args) {
-        if (file instanceof Readable) {
+        if (lib.isReadable(file)) {
             return executeWithRs(file, args, this._executeCommand.bind(this))
         }
         return this._executeCommand(file, args)
@@ -139,12 +157,12 @@ class ExiftoolProcess extends EventEmitter {
 
     /**
      * Write metadata to a file or directory.
-     * @param {string} file - path to the file or directory
-     * @param {object} data - data to write, with keys as tags.
-     * @param {object}
-     * @param {string} destination where to write
+     * @param {string} file path to the file or directory
+     * @param {object} data data to write, with keys as tags
+     * @param {string[]} args additional arguments, e.g., ['overwrite_original']
      * @param {boolean} debug whether to print to stdout
-     * @returns {Promise} a promise to write metadata
+     * @returns {Promise.<{{data, error}}>} A promise to write metadata,
+     * resolved with data from stdout and stderr.
      */
     writeMetadata(file, data, args, debug) {
         if (!lib.isString(file)) {

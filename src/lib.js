@@ -2,6 +2,7 @@
 
 const cp = require('child_process')
 const EOL = require('os').EOL
+const isStream = require('is-stream')
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -19,6 +20,10 @@ function close(proc) {
 
 function isString(s) {
     return (typeof s).toLowerCase() === 'string'
+}
+
+function isObject(o) {
+    return (typeof o).toLowerCase() === 'object' && o !== null
 }
 
 /**
@@ -49,7 +54,7 @@ function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
     const extendedArgs = getArgs(args)
     const extendedArgsNoSplit = getArgs(noSplitArgs, true)
 
-    command = command !== undefined ? command : '';
+    command = command !== undefined ? command : ''
 
     const allArgs = [].concat(
         extendedArgsNoSplit,
@@ -72,7 +77,7 @@ function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
     allArgs.forEach(arg => writeStdIn(proc, arg, encoding))
 }
 
-let currentCommand = 0;
+let currentCommand = 0
 function genCommandNumber() {
     return String(++currentCommand)
 }
@@ -104,21 +109,39 @@ function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, 
         }))
 }
 
-function spawn(bin) {
+function isReadable(stream) {
+    return isStream.readable(stream)
+}
+function isWritable(stream) {
+    return isStream.writable(stream)
+}
+
+/**
+ * Spawn exiftool.
+ * @param {string} bin Path to the binary
+ * @param {object} [options] options to pass to child_process.spawn method
+ * @returns {Promise.<ChildProcess>} A promise resolved with the process pointer, or rejected on error.
+ */
+function spawn(bin, options) {
+    const echoString = Date.now().toString()
+    const proc = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', '-'], options)
+    if (!isReadable(proc.stderr)) {
+        killProcess(proc)
+        return Promise.reject(new Error('Process was not spawned with a readable stderr, check stdio options.'))
+    }
+
     return new Promise((resolve, reject) => {
-        const echoString = Date.now().toString()
-        const process = cp.spawn(bin, ['-echo2', echoString, '-stay_open', 'True', '-@', '-'])
-        process.once('error', reject)
         const echoHandler = (data) => {
             const d = data.toString().trim()
             // listening for echo2 in stderr (echo and echo1 won't work)
             if (d === echoString) {
-                resolve(process)
+                resolve(proc)
             } else {
                 reject(new Error(`Unexpected string on start: ${d}`))
             }
         }
-        process.stderr.once('data', echoHandler)
+        proc.stderr.once('data', echoHandler)
+        proc.once('error', reject)
     })
 }
 
@@ -144,6 +167,18 @@ function mapDataToTagArray(data, array) {
     return res
 }
 
+/**
+ * Use process.kill on POSIX or terminate process with taskkill on Windows.
+ * @param {ChildProcess} proc Process to terminate
+ */
+function killProcess(proc) {
+    if (process.platform === 'win32') {
+        cp.exec(`taskkill /t /F /PID ${proc.pid}`)
+    } else {
+        proc.kill()
+    }
+}
+
 module.exports = {
     spawn,
     close,
@@ -153,4 +188,8 @@ module.exports = {
     getArgs,
     execute,
     isString,
+    isObject,
+    isReadable,
+    isWritable,
+    killProcess,
 }

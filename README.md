@@ -6,26 +6,31 @@ A Node.js interface to the *exiftool* command-line application.
 [![Build Status](https://travis-ci.org/Sobesednik/node-exiftool.svg?branch=master)](https://travis-ci.org/Sobesednik/node-exiftool)
 [![Build status](https://ci.appveyor.com/api/projects/status/97p9ur4loqrmfog6/branch/master?svg=true)](https://ci.appveyor.com/project/zavr-1/node-exiftool/branch/master)
 
-[Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/) is an amazing tool written by
-Phil Harvey in Perl which can read and write metadata to a number of file formats. It
-is very powerful and allows to do such things as extracting orientation from JPEG files
-uploaded to your server by users to rotate generated previews accordingly, as well
-as appending copyright information to photos using
+[Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/) is an amazing tool
+written by Phil Harvey in Perl which can read and write metadata to a number of
+file formats. It is very powerful and allows to do such things as extracting
+orientation from JPEG files uploaded to your server by users to rotate generated
+previews accordingly, as well as appending copyright information to photos using
 [IPTC standard](https://iptc.org/standards/photo-metadata/iptc-standard/).
 
-> _exiftool_ is not distributed with _node-exiftool_. The module
-> will try to spawn `exiftool`, therefore you must install it manually. You can also use
-> [dist-exiftool](https://www.npmjs.com/package/dist-exiftool) package which will install
-> _exiftool_ distribution appropriate for your platform. See below for details.
+> _exiftool_ is not distributed with _node-exiftool_. The module will try to
+> spawn `exiftool`, therefore you must install it manually. You can also use
+> [dist-exiftool](https://www.npmjs.com/package/dist-exiftool) package which
+> will install _exiftool_ distribution appropriate for your platform. See below
+> for details about how to use `node-exiftool` with `dist-exiftool`.
 
 ## Usage
 
-The module spawns an exiftool process with `-stay_open True -@ -` arguments, so that
-there is no overhead related to starting a new process to read every file or directory.
-The package creates a process asynchronously and listens for stdout and stderr `data`
-events and uses promises thus avoiding blocking the Node's event loop.
+The module spawns an exiftool process with `-stay_open True -@ -` arguments, so
+that there is no overhead related to starting a new process to read every file
+or directory. The package creates a process asynchronously and listens for
+stdout and stderr `data` events and uses promises thus avoiding blocking the
+Node's event loop.
 
 ### Require
+
+By default, the executable is hard-coded to be just `exiftool`. You must have it
+you path for this method to work.
 
 ```javascript
 const exiftool = require('node-exiftool')
@@ -34,12 +39,17 @@ const ep = new exiftool.ExiftoolProcess()
 
 ### Custom Executable
 
+It is possible to specify a custom executable.
+
 ```javascript
 const exiftool = require('node-exiftool')
 const ep = new exiftool.ExiftoolProcess('/usr/local/exiftool')
 ```
 
 ### dist-exiftool
+
+Or you can install `dist-exiftool`, which allows to install `exiftool` from
+_npm_.
 
 ```bash
 npm i --save dist-exiftool
@@ -50,6 +60,49 @@ const exiftool = require('node-exiftool')
 const exiftoolBin = require('dist-exiftool')
 const ep = new exiftool.ExiftoolProcess(exiftoolBin)
 ```
+
+### Opening and Closing
+
+After creating an instance of `ExiftoolProcess`, it must be opened. When
+finished working with it, it should be closed, when `-stay_open False` will be
+written to its _stdin_ to exit the process.
+
+```javascript
+const exiftool = require('node-exiftool')
+const ep = new exiftool.ExiftoolProcess()
+
+ep
+  .open()
+  // read and write metadata operations
+  .then(() => ep.close())
+  .then(() => console.log('Closed exiftool'))
+  .catch(console.error)
+```
+
+#### Passing Options
+
+`exiftool` will be open with `child_process.spawn`, and you can specify options
+object which will passed to the `spawn` method.
+
+```javascript
+const exiftool = require('node-exiftool')
+const options = {
+  detached: true,
+  env: Object.assign({}, process.env, {
+    ENVIRONMENT_VARIABLE: 1,
+  }),
+}
+const ep = new exiftool.ExiftoolProcess()
+
+ep
+  .open(options)
+  .then(() => ep.close())
+  .catch(console.error)
+```
+
+Since passing options is available, a check will be made to make sure that
+`stderr` and `stdout` streams are readable, and `stdin` is writable. Therefore,
+you cannot pass `{ stdio: 'ignore' }` as an option.
 
 ### Reading Metadata
 
@@ -69,7 +122,8 @@ ep
   .then(() => ep.readMetadata('photo2.jpg', ['-File:all']))
   .then(console.log, console.error)
   .then(() => ep.close())
-  .then(() => console.log('Closed exiftool'), console.error)
+  .then(() => console.log('Closed exiftool'))
+  .catch(console.error)
 ```
 
 ```javascript
@@ -104,24 +158,26 @@ Started exiftool process 29671
 Closed exiftool
 ```
 
-### Reading Metadata from a Stream
+### Reading Metadata from a Readable Stream
 
-You can read metadata from a stream the same way you read a file metadata. `node-exiftool`
-will create a temp file and pipe your Readable into it, then pass the path to `exiftool`.
-After the result is got from `exiftool`, the temp file is removed.
+You can read metadata from a stream the same way you read a file metadata.
+`node-exiftool` will create a temporary file and pipe your `Readable` into it,
+then pass the path to `exiftool`. After the result is received from `exiftool`,
+the  temp file will be removed.
 
-```js
+```javascript
 const exiftoolBin = require('dist-exiftool')
 const exiftool =  require('exiftool')
 const fs = require('fs')
 const path = require('path')
 
 const ep = new exiftool.ExiftoolProcess(exiftoolBin)
+
+const PHOTO_PATH = path.join(__dirname, 'photo.jpg')
+const rs = fs.createReadStream(PHOTO_PATH)
+
 ep.open()
-    .then(() => {
-        const rs = fs.createReadStream(path.join(__dirname, 'photo.jpg'))
-        return ep.readMetadata(rs, ['-File:all'])
-    })
+    .then(() => ep.readMetadata(rs, ['-File:all']))
     .then((res) => {
         console.log(res)
     })
@@ -407,13 +463,14 @@ exiftool process exited
 ...
 ```
 
-### Stream encoding
+### Stream Encoding
 
-By default, `setEncoding('utf8')` will be called on `stdout` and `stderr` streams, and `stdin` will
-be written with `utf8` encoding (this is Node's deafult on a Mac at least). If you wish to use
-system's default encoding, pass `null` when opening the process. If you want to set some other
-encoding, specify it as a string. [Check here](https://github.com/nodejs/node/blob/master/lib/net.js#L789)
-for Node's supported encodings.
+By default, `setEncoding('utf8')` will be called on `stdout` and `stderr`
+streams, and `stdin` will be written with `utf8` encoding (this is Node's
+default on a Mac at least). If you wish to use system's default encoding, pass
+`null` when opening the process. If you want to set some other encoding, specify
+it as a string.
+[Node's supported encodings](https://github.com/nodejs/node/blob/master/lib/net.js#L789).
 
 ```js
 const exiftool = require('node-exiftool')
@@ -435,12 +492,14 @@ Promise.resolve()
   .catch(console.error)
 ```
 
-### Writing tags for Adobe in UTF8
+### Writing Tags for Adobe in UTF8
 
-Some metadata must be written in `utf8` encoding, for example to be recognised by Adobe products.
-However, IPTC fields are encoded in Latin1, so you need to explicitly pass `codedcharacterset=utf8`
-argument. For example, `Caption-Abstract` is an [IPTC tag](http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/IPTC.html),
-so to write it in UTF8, do the following:
+Some metadata must be written in `utf8` encoding, for example to be recognized
+by Adobe products. However, IPTC fields are encoded in _Latin1_, so you need to
+explicitly pass `codedcharacterset=utf8` argument. For example,
+`Caption-Abstract` is an
+[IPTC tag](http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/IPTC.html), so
+to write it in _utf8_, do the following:
 
 ```js
 const exiftool = require('node-exiftool')
@@ -468,13 +527,42 @@ ep
   .catch(console.error)
 ```
 
-### Reading utf8 encoded filename on Windows
+### Using Detached Mode on Windows
 
-If you're on Windows and your active page is different from `utf8`, you should pass
-`charset filename=utf8` when trying to read a file. It shouldn't be a problem on a Mac.
+You can spawn exiftool with `{ detached: true }` option if you need to manually
+handle its exit independent of your application. On Linux, the new process
+will be made a leader of its process group, and will not quit with the Node
+app. On Windows, the process will not quit either, however, there will be two
+`exiftool` processes: one returned by the `child_process.spawn` method, and
+a second one, started by `exiftool.exe` itself. There is also going to appear
+`conhost.exe`, if the parent node application is not attached to a terminal.
 
-An error you can see is: `File not found: Fọto.jpg` or whatever filename you have. To fix it,
-set filename charset to `utf8`.
+```powershell
+wmic process where "caption='node.exe' or caption='exiftool.exe' or caption='conhost.exe'" get caption,processid,parentprocessid
+```
+
+```powershell
+Caption       ParentProcessId  ProcessId
+node.exe      3464             5752
+exiftool.exe  5752             6096
+exiftool.exe  6096             4588
+conhost.exe   4588             4016
+```
+
+Because Windows will throw an error when trying to kill a process group by
+passing `-pid` to `process.kill`, you should find the second exiftool process by
+its parent pid (returned with `ep.open()`), and kill it manually, e.g., with
+`cp.exec('taskkill /F /T /PID ${pid}')`. Check the
+[`detached-true` test](test/spec/detached-true.js) for more insight.
+
+### Reading utf8 Encoded Filename on Windows
+
+If you're on Windows and your active page is different from `utf8`, you should
+pass `charset filename=utf8` when trying to read a file. It shouldn't be a
+problem on a Mac.
+
+An error you can see is: `File not found: Fọto.jpg` or whatever filename you
+have. To fix it, set filename charset to `utf8`.
 
 ```js
 const exiftool = require('node-exiftool')
@@ -503,13 +591,12 @@ function printCHCP() {
 printCHCP().then(console.log, console.error)
 ```
 
-Example output: `Active code page: 437`. `utf8`'s numer is `65001` (on win)
+Example output: `Active code page: 437`. `utf8`'s number is `65001` (on win)
 
 - [Special characters don't display properly in my Windows console](http://www.sno.phy.queensu.ca/~phil/exiftool/faq.html#Q18)
-
 - [Passing filenames with Unicode characters to ExifTool](http://u88.n24.queensu.ca/exiftool/forum/index.php?topic=6721.0)
 
-### How does it work
+### How Does It Work
 
 For example, when trying to write metadata:
 
@@ -564,9 +651,10 @@ to `stdout`, and
 {ready513858}
 ```
 
-to `stderr`. There's a regex transform stream which is available for reading when it sees a block
-like `{begin<N>}...some data...{ready<N>}`. Once both `stderr` and `stdout` datas have been
-received, the promise returned by `writeMetadata` function will be resolved.
+to `stderr`. There's a regex transform stream which is available for reading
+when it sees a block like `{begin<N>}...some data...{ready<N>}`. Once both
+`stderr` and `stdout` data have been received, the promise returned by
+`writeMetadata` function will be resolved.
 
 ## Benchmark
 
@@ -613,11 +701,28 @@ Average time: 34.36ms
 Exiftool Open was faster by 471%
 ```
 
+## Testing
+
+We're using [`exiftool-context`](https://www.npmjs.com/package/exiftool-context)
+to test with [`zoroaster`](https://www.npmjs.com/package/zoroaster).
+
+Make sure to do the following in tests, when testing current version:
+
+```js
+const context = require('exiftool-context')
+const exiftool = require('../../src/')
+
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
+```
+
+Otherwise, the context will use a stable version which it installs
+independently.
+
 ## Metadata
 
-Metadata is awesome and although it can increase the file size, it preserves copyright
-and allows to find out additional information and the author of an image/movie. Let's
-all use metadata.
+Metadata is awesome and although it can increase the file size, it preserves
+copyright and allows to find out additional information and the author of an
+image/movie. Let's all use metadata.
 
 ## Resources
 [Exiftool Documentation](http://www.sno.phy.queensu.ca/~phil/exiftool/exiftool_pod.html)

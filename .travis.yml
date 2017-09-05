@@ -7,3 +7,6 @@ os:
   - osx
 osx_image: xcode8
 script: 'npm test'
+cache:
+  directories:
+    - node_modules
