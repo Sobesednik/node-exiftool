@@ -33,11 +33,6 @@ class ExiftoolProcess extends EventEmitter {
             return Promise.reject(new Error('Exiftool process is not open'))
         }
         return lib.close(this._process)
-            .then(() => {
-                this._stdoutResolveWs.end()
-                this._stderrResolveWs.end()
-                this._open = false
-            })
     }
 
     _assignEncoding(encoding) {
@@ -112,7 +107,7 @@ class ExiftoolProcess extends EventEmitter {
     }
 
     _exitListener() {
-        //console.log('exiftool process exit');
+        // console.log('exiftool process exit')
         this.emit(events.EXIT)
         this._open = false // try to re-spawn?
     }

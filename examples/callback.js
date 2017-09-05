@@ -2,13 +2,14 @@
  * This shows how to write code for node-exiftool if you need to
  * use callbacks.
  *
- * LOCAL=1 node examples/callback 28.jpg, or
+ * node examples/callback 28.jpg, or
  * npm run callback-example
  */
 
+// const exiftoolBin = require('dist-exiftool')
+const exiftoolBin = require('exiftool-context').exiftoolBin
 const path = require('path')
-const exiftool = process.env.LOCAL ? require('..') : require('node-exiftool')
-const exiftoolBin = require('dist-exiftool')
+const exiftool = require('../')
 
 const photo = path.join(process.cwd(), process.argv[2])
 

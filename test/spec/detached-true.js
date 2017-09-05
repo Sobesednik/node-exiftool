@@ -1,40 +1,15 @@
 'use strict'
 
-const cp = require('child_process')
 const makepromise = require('makepromise')
 const ps = require('ps-node')
 const assert = require('assert')
+const killPid = require('../lib/kill-pid')
 
+const exiftool = require('../../src/')
 const context = require('../context/detached')
+context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 const isWindows = process.platform === 'win32'
-
-function killWinPid(pid) {
-    if (process.platform !== 'win32') {
-        return Promise.reject(new Error('This function is only available on win'))
-    }
-    return new Promise((resolve, reject) => {
-        cp.exec(`taskkill /t /F /PID ${pid}`, (err, stdout) => {
-            if (err) return reject(err)
-            if (!/SUCCESS/.test(stdout)) return reject(new Error(stdout.trim()))
-            resolve(pid)
-        })
-    })
-}
-
-// use this function when we only have a pid, but not process, i.e.,
-// we can't assign on('exit') listener
-function killPid(pid) {
-    if (process.platform === 'win32') {
-        return Promise.reject(new Error('This function is not available on win'))
-    }
-    return new Promise((resolve, reject) => {
-        ps.kill(pid, (err) => {
-            if (err) return reject(err)
-            return resolve()
-        })
-    })
-}
 
 const checkPid = pid => makepromise(ps.lookup, { pid })
 const checkPpid = ppid => makepromise(ps.lookup, { ppid })
@@ -191,7 +166,7 @@ const createTestWin = (detached) => {
                 }
 
                 // cleanup by killing child exiftool, this should kill the whole tree
-                return killWinPid(res.epChild.pid)
+                return killPid(res.epChild.pid)
             })
     }
     return test

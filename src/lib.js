@@ -11,10 +11,18 @@ function writeStdIn(proc, data, encoding) {
 }
 
 function close(proc) {
-    return new Promise((resolve) => {
-        proc.on('close', resolve)
+    let errHandler
+    return new Promise((resolve, reject) => {
+        errHandler = (err) => {
+            reject(new Error(`Could not write to stdin: ${err.message}`))
+        }
+        proc.once('close', resolve)
+        proc.stdin.once('error', errHandler)
         writeStdIn(proc, '-stay_open')
         writeStdIn(proc, 'false')
+    })
+    .then(() => {
+        proc.stdin.removeListener('error', errHandler)
     })
 }
 
@@ -90,12 +98,25 @@ function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, 
         return Promise.resolve({ data: 'debug', error: null })
     }
 
-    const dataPromise = new Promise(resolve => {
+    let dataFinishHandler
+    let errFinishHandler
+    let dataErr
+    let errErr
+
+    const dataPromise = new Promise((resolve, reject) => {
+        dataFinishHandler = () => {
+            reject(new Error('stdout stream finished before operation was complete'))
+        }
+        stdoutRws.once('finish', dataFinishHandler)
         stdoutRws.addToResolveMap(commandNumber, resolve)
-    })
-    const errPromise = new Promise(resolve =>
+    }).catch(error => { dataErr = error })
+    const errPromise = new Promise((resolve, reject) => {
+        errFinishHandler = () => {
+            reject(new Error('stderr stream finished before operation was complete'))
+        }
+        stderrRws.once('finish', errFinishHandler)
         stderrRws.addToResolveMap(commandNumber, resolve)
-    )
+    }).catch(error => { errErr = error })
 
     execute(proc, command, commandNumber, args, noSplitArgs, encoding)
 
@@ -103,10 +124,21 @@ function executeCommand(proc, stdoutRws, stderrRws, command, args, noSplitArgs, 
         dataPromise,
         errPromise,
     ])
-        .then(res => ({
-            data: res[0] ? JSON.parse(res[0]) : null,
-            error: res[1] || null,
-        }))
+        .then((res) => {
+            stderrRws.removeListener('finish', errFinishHandler)
+            stdoutRws.removeListener('finish', dataFinishHandler)
+            if (dataErr && !errErr) {
+                throw dataErr
+            } else if (errErr && !dataErr) {
+                throw errErr
+            } else if (dataErr && errErr) {
+                throw new Error('stdout and stderr finished before operation was complete')
+            }
+            return {
+                data: res[0] ? JSON.parse(res[0]) : null,
+                error: res[1] || null,
+            }
+        })
 }
 
 function isReadable(stream) {
