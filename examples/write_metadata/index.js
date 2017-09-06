@@ -1,15 +1,18 @@
 #!/usr/bin/env node
+'use strict'
+
 /**
  * This example shows how to write metadata, with unicode characters. It will create a new file in
  * the example directory.
  *
- * ./examples/write_metadata/index.js, or
+ * node ./examples/write_metadata, or
  * npm run write-example
  */
 
-const exiftool =  require('../..')
-const exiftoolBin = require('dist-exiftool')
+// const exiftoolBin = require('dist-exiftool')
+const exiftoolBin = require('exiftool-context').exiftoolBin
 const path = require('path')
+const exiftool =  require('../..')
 const lib = require('../lib')
 
 const ep = new exiftool.ExiftoolProcess(exiftoolBin)
