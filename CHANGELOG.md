@@ -1,3 +1,12 @@
+<a name="2.3.0"></a>
+# [2.3.0](https://github.com/Sobesednik/node-exiftool/compare/v2.2.0...v2.3.0) (2017-9-6)
+
+* [feature] Pass options to the `open` method ([adef972](https://github.com/Sobesednik/node-exiftool/commit/adef972)),
+closes [#33](https://github.com/Sobesednik/node-exiftool/issues/33)
+* [bugfix] Reject execution when `stdio` streams finish before an operation
+is complete ([d34d654](https://github.com/Sobesednik/node-exiftool/commit/d34d654)),
+closes [#32](https://github.com/Sobesednik/node-exiftool/issues/32)
+
 <a name="2.2.0"></a>
 # [2.2.0](https://github.com/Sobesednik/node-exiftool/compare/v2.1.6...v2.2.0) (2017-5-31)
 
