@@ -1,5 +1,3 @@
-'use strict'
-
 const EventEmitter = require('events')
 const lib = require('./lib')
 const beginReady = require('./begin-ready')
@@ -55,7 +53,7 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise.<number>} A promise to spawn exiftool in stay_open
      * mode, resolved with pid.
      */
-    open(encoding, options) {
+    async open(encoding, options) {
         let _encoding = encoding
         let _options = options
         // if encoding is not a string and options are not given, treat it as options
@@ -65,45 +63,43 @@ class ExiftoolProcess extends EventEmitter {
         }
         this._assignEncoding(_encoding)
         if (this._open) {
-            return Promise.reject(new Error('Exiftool process is already open'))
+            throw new Error('Exiftool process is already open')
         }
-        return lib.spawn(this._bin, _options)
-            .then((exiftoolProcess) => {
-                //console.log(`Started exiftool process %s`, process.pid);
-                this.emit(events.OPEN, exiftoolProcess.pid)
-                this._process = exiftoolProcess
+        const exiftoolProcess = await lib.spawn(this._bin, _options)
+        //console.log(`Started exiftool process %s`, process.pid);
+        this.emit(events.OPEN, exiftoolProcess.pid)
+        this._process = exiftoolProcess
 
-                this._process.on('exit', this._exitListener.bind(this))
-                if (!lib.isReadable(this._process.stdout)) {
-                    lib.killProcess(this._process)
-                    throw new Error('Process was not spawned with a readable stdout, check stdio options.')
-                }
-                if (!lib.isWritable(this._process.stdin)) {
-                    lib.killProcess(this._process)
-                    throw new Error('Process was not spawned with a writable stdin, check stdio options.')
-                }
+        this._process.on('exit', this._exitListener.bind(this))
+        if (!lib.isReadable(this._process.stdout)) {
+            lib.killProcess(this._process)
+            throw new Error('Process was not spawned with a readable stdout, check stdio options.')
+        }
+        if (!lib.isWritable(this._process.stdin)) {
+            lib.killProcess(this._process)
+            throw new Error('Process was not spawned with a writable stdin, check stdio options.')
+        }
 
-                // if process was spawned, stderr is readable (see lib/spawn)
+        // if process was spawned, stderr is readable (see lib/spawn)
 
-                this._process.stdout.setEncoding(this._encoding)
-                this._process.stderr.setEncoding(this._encoding)
+        this._process.stdout.setEncoding(this._encoding)
+        this._process.stderr.setEncoding(this._encoding)
 
-                // resolve-write streams
-                this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stdout)
-                this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stderr)
+        // resolve-write streams
+        this._stdoutResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stdout)
+        this._stderrResolveWs = beginReady.setupResolveWriteStreamPipe(this._process.stderr)
 
-                // handle errors so that Node does not crash
-                this._stdoutResolveWs.on('error', console.error) // eslint-disable-line no-console
-                this._stderrResolveWs.on('error', console.error) // eslint-disable-line no-console
+        // handle errors so that Node does not crash
+        this._stdoutResolveWs.on('error', console.error) // eslint-disable-line no-console
+        this._stderrResolveWs.on('error', console.error) // eslint-disable-line no-console
 
-                // debug
-                // exiftoolProcess.stdout.pipe(process.stdout)
-                // exiftoolProcess.stderr.pipe(process.stderr)
+        // debug
+        // exiftoolProcess.stdout.pipe(process.stdout)
+        // exiftoolProcess.stderr.pipe(process.stderr)
 
-                this._open = true
+        this._open = true
 
-                return exiftoolProcess.pid
-            })
+        return exiftoolProcess.pid
     }
 
     _exitListener() {
@@ -120,13 +116,13 @@ class ExiftoolProcess extends EventEmitter {
         return this._open
     }
 
-    _executeCommand(command, args, argsNoSplit, debug) {
+    async _executeCommand(command, args, argsNoSplit, debug) {
         //test this!
         if (!this._open) {
-            return Promise.reject(new Error('exiftool is not open'))
+            throw new Error('exiftool is not open')
         }
         if (this._process.signalCode === 'SIGTERM') {
-            return Promise.reject(new Error('Could not connect to the exiftool process'))
+            throw new Error('Could not connect to the exiftool process')
         }
 
         const proc = debug === true ? process : this._process
@@ -159,12 +155,12 @@ class ExiftoolProcess extends EventEmitter {
      * @returns {Promise.<{{data, error}}>} A promise to write metadata,
      * resolved with data from stdout and stderr.
      */
-    writeMetadata(file, data, args, debug) {
+    async writeMetadata(file, data, args, debug) {
         if (!lib.isString(file)) {
             throw new Error('File must be a string')
         }
         if (!lib.checkDataObject(data)) {
-            return Promise.reject(new Error('Data argument is not an object'))
+            throw new Error('Data argument is not an object')
         }
 
         const writeArgs = lib.mapDataToTagArray(data)

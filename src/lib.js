@@ -1,8 +1,7 @@
-'use strict'
-
 const cp = require('child_process')
-const EOL = require('os').EOL
+const { EOL } = require('os')
 const isStream = require('is-stream')
+const erotic = require('erotic')
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)

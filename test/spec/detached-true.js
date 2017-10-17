@@ -1,5 +1,3 @@
-'use strict'
-
 const makepromise = require('makepromise')
 const ps = require('ps-node')
 const assert = require('assert')
@@ -86,11 +84,11 @@ const findExiftoolChildAndConhost = (epPid, exiftoolDetached) => {
             if (!exiftoolDetached) return res
             // if detached, conhost is child of child exiftool,
             // which we are now finding
-            const childExiftool = res[0]
+            const [childExiftool] = res
             assert(childExiftool)
             assert(/exiftool\.exe/.test(childExiftool.command))
             return checkPpid(childExiftool.pid).then((conhostRes) => {
-                const conhost = conhostRes[0]
+                const [conhost] = conhostRes
                 assert(conhost)
                 assert(/conhost.exe/.test(conhost.command))
                 const all = [].concat(conhostRes, res)
@@ -119,10 +117,7 @@ const setup = (exiftoolDetached, ctx) => {
     let checkPids
 
     return ctx.forkNode(exiftoolDetached)
-        .then((meta) => {
-            const forkPid = meta.forkPid
-            const epPid = meta.epPid
-
+        .then(({ forkPid, epPid }) => {
             const res = { forkPid, epPid }
 
             if (isWindows) {

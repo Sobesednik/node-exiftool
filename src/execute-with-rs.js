@@ -1,10 +1,9 @@
-'use strict'
 const wrote = require('wrote')
-const Readable = require('stream').Readable
+const { Readable } = require('stream')
 
 /**
  * Create temp file for rs, execute exiftool command, then erase file
- * @param {Readable} rs a read strem
+ * @param {Readable} rs a read stream
  * @param {string[]} args Arguments
  * @param {function} executeCommand function which is responsible for executing the command
  */

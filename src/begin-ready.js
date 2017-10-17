@@ -1,7 +1,4 @@
-'use strict'
-
-const Transform = require('stream').Transform
-const Writable = require('stream').Writable
+const { Transform, Writable }  = require('stream')
 const restream = require('restream')
 
 const BEGIN_READY_RE = /{begin(\d+)}([\s\S]*){ready\1}/g

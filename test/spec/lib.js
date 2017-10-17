@@ -1,5 +1,5 @@
 const assert = require('assert')
-const EOL = require('os').EOL
+const { EOL } = require('os')
 const lib = require('../../src/lib')
 
 const libTestSuite = {
