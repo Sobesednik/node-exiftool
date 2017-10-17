@@ -6,7 +6,11 @@ os:
   - linux
   - osx
 osx_image: xcode8
-script: 'npm test'
+install:
+  - npm run lint
+  - npm run build
+script:
+  - npm run test-build
 cache:
   directories:
     - node_modules

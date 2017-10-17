@@ -8,6 +8,9 @@ install:
   - ps: Install-Product node $env:nodejs_version
   # install modules
   - npm install
+  - npm run lint
+  # transpile
+  - npm run build
 
 # Post-install test scripts.
 test_script:
@@ -15,7 +18,7 @@ test_script:
   - node --version
   - npm --version
   # run tests
-  - npm test
+  - npm run test-build
 
 # Don't actually build.
 build: off
