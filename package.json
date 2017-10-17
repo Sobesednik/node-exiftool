@@ -2,8 +2,9 @@
   "name": "node-exiftool",
   "version": "2.3.0",
   "description": "A Node.js interface to exiftool command-line application.",
-  "main": "src/index.js",
+  "main": "dist/src/index.js",
   "files": [
+    "dist/",
     "src/"
   ],
   "scripts": {

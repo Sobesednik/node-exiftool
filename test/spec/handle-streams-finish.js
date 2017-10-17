@@ -7,10 +7,15 @@ context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
 // kill with operating system methods, rather than sending a signal,
 // which does not work on Windows
-function killAndWaitForExit(proc) {
-    const killPromise = killPid(proc.pid)
-    const exitPromise = new Promise(resolve => proc.once('exit', resolve))
-    return Promise.all([killPromise, exitPromise])
+function kill(proc) {
+    if (process.platform !== 'win32') {
+        return new Promise((resolve, reject) => {
+            proc.once('error', reject)
+            proc.once('exit', resolve)
+            process.kill(proc.pid)
+        })
+    }
+    return killPid(proc.pid)
 }
 
 const expected = 'stdout and stderr finished before operation was complete'
@@ -27,23 +32,24 @@ const runTest = async (ctx, getOperationPromise, createTempFile) => {
     }
     const operationPromise = getOperationPromise()
 
-    const killPromise = killAndWaitForExit(ctx.ep._process)
+    const killPromise = kill(ctx.ep._process)
 
     try {
-        await Promise.all([operationPromise, killPromise])
+        await operationPromise
         throw new Error('Expected operation to be rejected')
     } catch ({ message }) {
         assert.equal(message, expected)
+        await killPromise
     }
 }
 
 const closeStreamsOnExitTestSuite = {
     context,
-    'should return rejected promise on read': async (ctx) => {
+    'should return rejected promise when reading': async (ctx) => {
         const getOperationPromise = () => ctx.ep.readMetadata(ctx.folder)
         await runTest(ctx, getOperationPromise)
     },
-    'should return rejected promise on write': async (ctx) => {
+    'should return rejected promise when writing': async (ctx) => {
         const getOperationPromise = () => {
             const keywords = [ 'keywordA', 'keywordB' ]
             const comment = 'hello world'
