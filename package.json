@@ -49,6 +49,7 @@
     "zoroaster": "0.4.6"
   },
   "dependencies": {
+    "erotic": "0.1.0",
     "is-stream": "1.1.0",
     "restream": "1.2.0",
     "source-map-support": "0.5.0",
