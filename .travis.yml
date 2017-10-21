@@ -9,8 +9,9 @@ osx_image: xcode8
 install:
   - npm install
   - npm run lint
+  - npm run build
 script:
-  - npm run build-and-test
+  - npm run test-build
 # cache:
 #   directories:
 #     - node_modules
