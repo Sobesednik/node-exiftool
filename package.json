@@ -14,7 +14,7 @@
     "bench": "node benchmark/run",
     "build-src": "babel src --out-dir dist/src",
     "build-test": "babel test --out-dir dist/test",
-    "build": "run-p build-src build-test",
+    "build": "run-s build-src build-test",
     "build-and-test": "run-s build test-build",
     "callback-example": "LOCAL=1 node examples/callback examples/28.jpg",
     "write-example": "node examples/write_metadata/index",

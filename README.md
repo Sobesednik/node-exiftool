@@ -718,6 +718,17 @@ context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 Otherwise, the context will use a stable version which it installs
 independently.
 
+## Building
+
+The project is written with ES2017 (`async/await`) and built to be compatible
+with lower Node.js versions using `Babel`. `npm run build` will build source
+and test files. `npm run test-build` will run transpiled tests against
+transpiled sources, whereas `npm t` will run raw tests against raw source files.
+
+The preset used for transpiling is `es2015`, but without
+`transform-es2015-classes`, and with `transform-async-to-generator` and
+`source-map-support`.
+
 ## Metadata
 
 Metadata is awesome and although it can increase the file size, it preserves
