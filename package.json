@@ -2,16 +2,23 @@
   "name": "node-exiftool",
   "version": "2.3.0",
   "description": "A Node.js interface to exiftool command-line application.",
-  "main": "src/index.js",
+  "main": "dist/src/index.js",
   "files": [
+    "dist/",
     "src/"
   ],
   "scripts": {
     "test": "cross-env ZOROASTER_TIMEOUT=10000 zoroaster test/spec",
+    "test-build": "cross-env ZOROASTER_TIMEOUT=10000 zoroaster dist/test/spec",
     "test-watch": "zoroaster test/spec --watch",
     "bench": "node benchmark/run",
+    "build-src": "babel src --out-dir dist/src",
+    "build-test": "babel test --out-dir dist/test",
+    "build": "run-s build-src build-test",
+    "build-and-test": "run-s build test-build",
     "callback-example": "LOCAL=1 node examples/callback examples/28.jpg",
-    "write-example": "node examples/write_metadata/index"
+    "write-example": "node examples/write_metadata/index",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -30,15 +37,23 @@
   },
   "homepage": "https://github.com/Sobesednik/node-exiftool#readme",
   "devDependencies": {
+    "babel-cli": "6.26.0",
+    "babel-plugin-source-map-support": "1.0.0",
+    "babel-plugin-transform-async-to-generator": "6.24.1",
+    "babel-preset-es2015": "6.24.1",
     "cross-env": "5.0.0",
+    "eslint": "4.9.0",
     "exiftool-context": "1.4.0",
     "makepromise": "1.0.0",
+    "npm-run-all": "4.1.1",
     "ps-node": "0.1.6",
     "zoroaster": "0.4.6"
   },
   "dependencies": {
+    "erotic": "0.1.0",
     "is-stream": "1.1.0",
     "restream": "1.2.0",
+    "source-map-support": "0.5.0",
     "wrote": "0.6.1"
   }
 }

@@ -1,12 +1,11 @@
-const os = require('os')
+const { EOL } = require('os')
 const assert = require('assert')
 const child_process = require('child_process')
 const context = require('exiftool-context')
 const exiftool = require('../../src/')
 context.globalExiftoolConstructor = exiftool.ExiftoolProcess
 
-const ChildProcess = child_process.ChildProcess
-const EOL = os.EOL
+const { ChildProcess } = child_process
 
 const exiftoolTestSuite = {
     context,
@@ -163,7 +162,7 @@ const exiftoolTestSuite = {
                 .then((res) => {
                     assert.equal(res.error, null)
                     assert(Array.isArray(res.data))
-                    const metadata = res.data[0]
+                    const { data: [metadata] } = res
                     const expected = {
                         SourceFile: ctx.replaceSlashes(ctx.jpegFile),
                         Directory: ctx.replaceSlashes(ctx.folder),
@@ -265,13 +264,13 @@ const exiftoolTestSuite = {
                 .then((res) => {
                     assert(Array.isArray(res.data))
                     assert.equal(res.error, null)
-                    const meta = res.data[0]
-                    assert.equal(meta.Keywords.length, keywords.length)
-                    meta.Keywords.forEach((keyword, index) => {
+                    const { data: [metadata] } = res
+                    assert.equal(metadata.Keywords.length, keywords.length)
+                    metadata.Keywords.forEach((keyword, index) => {
                         assert.equal(keyword, keywords[index])
                     })
-                    assert.equal(meta.Comment, comment)
-                    assert.equal(meta.Scene, undefined) // should be removed with -all=
+                    assert.equal(metadata.Comment, comment)
+                    assert.equal(metadata.Scene, undefined) // should be removed with -all=
                 })
         },
     },

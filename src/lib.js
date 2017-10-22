@@ -1,8 +1,7 @@
-'use strict'
-
 const cp = require('child_process')
-const EOL = require('os').EOL
+const { EOL } = require('os')
 const isStream = require('is-stream')
+const erotic = require('erotic')
 
 function writeStdIn(proc, data, encoding) {
     // console.log('write stdin', data)
@@ -11,17 +10,18 @@ function writeStdIn(proc, data, encoding) {
 }
 
 function close(proc) {
+    const er = erotic()
     let errHandler
     return new Promise((resolve, reject) => {
-        errHandler = (err) => {
-            reject(new Error(`Could not write to stdin: ${err.message}`))
+        errHandler = ({ message }) => {
+            const err = er(message)
+            reject(err)
         }
         proc.once('close', resolve)
         proc.stdin.once('error', errHandler)
         writeStdIn(proc, '-stay_open')
         writeStdIn(proc, 'false')
-    })
-    .then(() => {
+    }).then(() => {
         proc.stdin.removeListener('error', errHandler)
     })
 }
@@ -46,7 +46,7 @@ function getArgs(args, noSplit) {
         .map(arg => `-${arg}`)
         .reduce((acc, arg) =>
             [].concat(acc, noSplit ? [arg] : arg.split(/\s+/))
-        , [])
+            , [])
 }
 
 /**
@@ -80,6 +80,7 @@ function execute(proc, command, commandNumber, args, noSplitArgs, encoding) {
         ]
     )
     if (process.env.DEBUG) {
+        // eslint-disable-next-line no-console
         console.log(JSON.stringify(allArgs, null, 2))
     }
     allArgs.forEach(arg => writeStdIn(proc, arg, encoding))

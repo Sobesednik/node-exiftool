@@ -1,11 +1,10 @@
 const assert = require('assert')
-const Readable = require('stream').Readable
-const Writable = require('stream').Writable
-const Transform = require('stream').Transform
-const beginReady = require('../../src/begin-ready')
-const createBeginReadyMatchTransformStream = beginReady.createBeginReadyMatchTransformStream
-const createResolverWriteStream = beginReady.createResolverWriteStream
-const setupResolveWriteStreamPipe = beginReady.setupResolveWriteStreamPipe
+const { Readable, Writable } = require('stream')
+const {
+    createBeginReadyMatchTransformStream,
+    createResolverWriteStream,
+    setupResolveWriteStreamPipe,
+} = require('../../src/begin-ready')
 
 /**
  * Pipe Readable stream in object mode into process.stdout,
@@ -14,16 +13,16 @@ const setupResolveWriteStreamPipe = beginReady.setupResolveWriteStreamPipe
  * gets assigned a lot of stream listeners such as end, drain,
  * error, finish, unpipe, close.
  */
-function debugObjectReadStream(rs, name) {
-    rs.pipe(new Transform({
-        objectMode: true,
-        transform: (chunk, enc, next) => {
-            const s = JSON.stringify(chunk, null, 2)
-            console.log(`Some data from ${name} rs: `)
-            next(null, `${s}\r\n`)
-        },
-    })).pipe(process.stdout)
-}
+// function debugObjectReadStream(rs, name) {
+//     rs.pipe(new Transform({
+//         objectMode: true,
+//         transform: (chunk, enc, next) => {
+//             const s = JSON.stringify(chunk, null, 2)
+//             console.log(`Some data from ${name} rs: `)
+//             next(null, `${s}\r\n`)
+//         },
+//     })).pipe(process.stdout)
+// }
 
 const commandNumber = '376080'
 const commandNumber2 = '65754'
@@ -111,8 +110,7 @@ const brtsTestSuite = {
             })
                 .then((res) => {
                     assert.equal(res.length, 2)
-                    const output = res[0]
-                    const output2 = res[1]
+                    const [output, output2] = res
                     assert.equal(output.cn, commandNumber)
                     assert.equal(output.d, data)
                     assert.equal(output2.cn, commandNumber2)

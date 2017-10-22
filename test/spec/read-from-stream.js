@@ -1,4 +1,3 @@
-'use strict'
 const assert = require('assert')
 const context = require('exiftool-context')
 const fs = require('fs')
