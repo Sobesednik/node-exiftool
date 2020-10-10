@@ -19,6 +19,16 @@ previews accordingly, as well as appending copyright information to photos using
 > will install _exiftool_ distribution appropriate for your platform. See below
 > for details about how to use `node-exiftool` with `dist-exiftool`.
 
+## Install
+
+**You must have `exiftool` installed and included on your $PATH env variable**
+
+MacOS ([homebrew](https://brew.sh/) computer club is where Apple was founded)
+```
+brew install exiftool
+yarn add node-exiftool
+```
+
 ## Usage
 
 The module spawns an exiftool process with `-stay_open True -@ -` arguments, so
