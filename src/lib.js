@@ -168,6 +168,8 @@ function spawn(bin, options) {
             // listening for echo2 in stderr (echo and echo1 won't work)
             if (d === echoString) {
                 resolve(proc)
+            } else if (d.includes("perl: warning: Setting locale failed.")) {
+                console.warn(d);
             } else {
                 reject(new Error(`Unexpected string on start: ${d}`))
             }
